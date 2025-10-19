@@ -110,7 +110,7 @@ function isCurrentPage(href: string) {
     display: flex;
     position: fixed;
     top: 0;
-    right: -100%;
+    right: 0;
     height: 100vh;
     width: 100%;
     max-width: 300px;
@@ -121,13 +121,14 @@ function isCurrentPage(href: string) {
     align-items: stretch;
     padding: 5rem 2rem 2rem;
     gap: 2rem;
-    transition: right 0.3s ease;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
     z-index: 5;
     box-shadow: -4px 0 12px rgba(0, 0, 0, 0.3);
   }
   
   .nav-menu.open {
-    right: 0;
+    transform: translateX(0);
   }
   
   .nav-links {
