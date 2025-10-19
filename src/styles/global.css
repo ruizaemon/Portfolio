@@ -1,0 +1,30 @@
+:root {
+  /* Color palette */
+  --color-primary: #00FF99;
+  --color-primary-hover: #00E68A;
+  --color-primary-active: #00CC7A;
+  --color-background: #1C1C22;
+  --color-text: white;
+  --color-text-muted: rgba(255, 255, 255, 0.8);
+}
+
+html {
+  background-color: var(--color-background);
+  font-family: 'JetBrains Mono'
+}
+
+body {
+  color: var(--color-text);
+  margin: 0 auto;
+  max-width: 100ch;
+  padding: 1rem;
+}
+
+/* Link styling for dark mode */
+a { 
+  color: var(--color-text-muted);
+  transition: color 0.3s ease;
+}
+a:hover { 
+  color: var(--color-primary);
+}

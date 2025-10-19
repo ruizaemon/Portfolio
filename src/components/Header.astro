@@ -1,0 +1,22 @@
+---
+import Navigation from "./Navigation.astro";
+
+const { title } = Astro.props;
+---
+<header>
+  <h1>{title}</h1> <!-- Maybe an icon instead of title -->
+  
+  <nav>
+    <Navigation />
+  </nav>
+</header>
+
+<style>
+  header {
+    display: flex;
+    align-items: center;
+  }
+  nav {
+    margin-left: auto;
+  }
+</style>

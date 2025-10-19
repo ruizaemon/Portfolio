@@ -1,0 +1,152 @@
+---
+import { getPathWithoutLocale } from '../utils/path';
+import { languages, getCurrentLanguageDisplay } from '../utils/languages';
+
+const currentLocale = Astro.currentLocale || 'en';
+const currentPath = Astro.url.pathname;
+const basePath = getPathWithoutLocale(currentPath);
+const currentLanguageDisplay = getCurrentLanguageDisplay(currentLocale);
+---
+
+<div class="language-selector">
+  <div class="selector-wrapper">
+    <button class="selector-button" aria-expanded="false" aria-haspopup="listbox">
+      <span class="current-lang">
+        {currentLanguageDisplay}
+      </span>
+      <svg class="chevron" width="12" height="8" viewBox="0 0 12 8" fill="none">
+        <path d="M1 1.5L6 6.5L11 1.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    
+    <ul class="language-list" role="listbox">
+      {languages.map((language) => (
+        <li class="language-item" role="option">
+          <a 
+            href={`/${language.code}/${basePath}`} 
+            class={currentLocale === language.code ? 'active' : ''}
+          >
+            {language.flag} {language.nativeName}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+</div>
+
+<script>
+  const button = document.querySelector('.selector-button');
+  const list = document.querySelector('.language-list');
+  
+  if (button && list) {
+    button.addEventListener('click', () => {
+      const isExpanded = button.getAttribute('aria-expanded') === 'true';
+      button.setAttribute('aria-expanded', (!isExpanded).toString());
+      list.classList.toggle('open');
+    });
+    
+    // Close when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!button.contains(e.target as Node) && !list.contains(e.target as Node)) {
+        button.setAttribute('aria-expanded', 'false');
+        list.classList.remove('open');
+      }
+    });
+  }
+</script>
+
+<style>
+  .language-selector {
+    position: relative;
+  }
+  
+  .selector-wrapper {
+    position: relative;
+  }
+  
+  .selector-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: transparent;
+    border: 1px solid var(--color-text-muted);
+    border-radius: 0.5rem;
+    color: var(--color-text);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: inherit;
+    font-size: 0.875rem;
+  }
+  
+  .selector-button:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+  
+  .selector-button[aria-expanded="true"] {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+  
+  .selector-button[aria-expanded="true"] .chevron {
+    transform: rotate(180deg);
+  }
+  
+  .chevron {
+    transition: transform 0.3s ease;
+  }
+  
+  .language-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--color-background);
+    border: 1px solid var(--color-text-muted);
+    border-radius: 0.5rem;
+    margin-top: 0.25rem;
+    padding: 0.5rem 0;
+    list-style: none;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+  
+  .language-list.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+  
+  .language-item {
+    margin: 0;
+  }
+  
+  .language-item a {
+    display: block;
+    padding: 0.75rem 1rem;
+    color: var(--color-text);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    font-size: 0.875rem;
+  }
+  
+  .language-item a:hover {
+    background: rgba(0, 255, 153, 0.1);
+    color: var(--color-primary);
+  }
+  
+  .language-item a.active {
+    background: rgba(0, 255, 153, 0.2);
+    color: var(--color-primary);
+    font-weight: 500;
+  }
+  
+  .current-lang {
+    white-space: nowrap;
+  }
+</style>
