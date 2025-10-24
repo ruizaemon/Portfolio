@@ -85,7 +85,7 @@
           clipPath: clipPath
         },
         {
-          duration: 1000,
+          duration: 700,
           easing: 'ease-in-out',
           pseudoElement: '::view-transition-new(root)'
         }
@@ -128,13 +128,16 @@
     overflow: hidden;
   }
 
-  .theme-toggle:hover {
-    background: rgba(255, 255, 255, 0.1);
-    transform: rotate(180deg) scale(1.1);
-  }
-
   .theme-toggle:active {
     transform: scale(0.95);
+  }
+
+  /* Only apply hover effects on devices with hover capability (not touch) */
+  @media (hover: hover) and (pointer: fine) {
+    .theme-toggle:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: rotate(180deg) scale(1.1);
+    }
   }
 
   .sun-icon,
@@ -166,13 +169,15 @@
     transform: rotate(0deg) scale(1);
   }
 
-  /* Hover effect - brighten icons */
-  .theme-toggle:hover .sun-icon,
-  .theme-toggle:hover .moon-icon {
-    filter: drop-shadow(0 2px 8px rgba(253, 184, 19, 0.6));
-  }
+  /* Hover effect - brighten icons (only on hover-capable devices) */
+  @media (hover: hover) and (pointer: fine) {
+    .theme-toggle:hover .sun-icon,
+    .theme-toggle:hover .moon-icon {
+      filter: drop-shadow(0 2px 8px rgba(253, 184, 19, 0.6));
+    }
 
-  :global([data-theme="light"]) .theme-toggle:hover .moon-icon {
-    filter: drop-shadow(0 2px 8px rgba(129, 140, 248, 0.6));
+    :global([data-theme="light"]) .theme-toggle:hover .moon-icon {
+      filter: drop-shadow(0 2px 8px rgba(129, 140, 248, 0.6));
+    }
   }
 </style>
