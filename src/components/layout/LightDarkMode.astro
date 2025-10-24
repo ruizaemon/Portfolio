@@ -20,21 +20,6 @@
 </button>
 
 <script>
-  // Initialize theme from localStorage or system preference
-  const getInitialTheme = () => {
-    if (typeof localStorage !== 'undefined') {
-      const savedTheme = localStorage.getItem('theme');
-      if (savedTheme) return savedTheme;
-    }
-    
-    // Check system preference
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-      return 'light';
-    }
-    
-    return 'dark';
-  };
-
   const setTheme = (theme: string) => {
     if (theme === 'light') {
       document.documentElement.setAttribute('data-theme', 'light');

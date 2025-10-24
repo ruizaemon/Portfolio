@@ -178,7 +178,7 @@ function isCurrentPage(href: string) {
     transition: color 0.3s ease;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     
-    /* Hover underline animation */
+    /* Hover underline animation base */
     &::after {
       content: '';
       position: absolute;
@@ -190,10 +190,6 @@ function isCurrentPage(href: string) {
       transition: width 0.3s ease;
     }
     
-    &:hover::after {
-      width: 100%;
-    }
-    
     /* Current page styling */
     &.current {
       color: var(--color-primary);
@@ -201,6 +197,13 @@ function isCurrentPage(href: string) {
         width: 100%;
         background-color: var(--color-primary);
       }
+    }
+  }
+
+  /* Hover effects only on devices with hover capability */
+  @media (hover: hover) and (pointer: fine) {
+    .nav-links a:hover::after {
+      width: 100%;
     }
   }
   
@@ -211,7 +214,7 @@ function isCurrentPage(href: string) {
     margin-top: 1rem;
   }
 
-  @media (min-width: 801px) {
+  @media (min-width: 768px) {
     .hamburger {
       display: none;
     }
