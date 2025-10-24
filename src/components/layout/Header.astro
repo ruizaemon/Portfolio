@@ -1,11 +1,12 @@
 ---
 import Navigation from "./Navigation.astro";
+import LightDarkMode from "./LightDarkMode.astro";
 
 const { title } = Astro.props;
 ---
 <header>
   <h1>{title}</h1> <!-- Maybe an icon instead of title -->
-  
+  <LightDarkMode />
   <nav>
     <Navigation />
   </nav>
@@ -15,6 +16,7 @@ const { title } = Astro.props;
   header {
     display: flex;
     align-items: center;
+    gap: 1rem;
   }
   nav {
     margin-left: auto;

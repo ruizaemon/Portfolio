@@ -1,5 +1,5 @@
 :root {
-  /* Color palette */
+  /* Dark mode (default) */
   --color-primary: #00FF99;
   --color-primary-hover: #00E68A;
   --color-primary-active: #00CC7A;
@@ -8,9 +8,40 @@
   --color-text-muted: rgba(255, 255, 255, 0.8);
 }
 
+[data-theme="light"] {
+  /* Light mode */
+  --color-primary: #0b9b72;
+  --color-primary-hover: #059669;
+  --color-primary-active: #10B981;
+  --color-background: #FAFAFA;
+  --color-text: #1A1A1A;
+  --color-text-muted: rgba(26, 26, 26, 0.65);
+}
+
 html {
   background-color: var(--color-background);
-  font-family: 'JetBrains Mono'
+  font-family: 'JetBrains Mono';
+}
+
+/* View Transitions API for smooth theme changes */
+@supports (view-transition-name: none) {
+  :root {
+    view-transition-name: root;
+  }
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 9999;
 }
 
 body {
@@ -19,10 +50,9 @@ body {
   max-width: 100ch;
   padding: 1rem;
 }
-
-/* Link styling for dark mode */
 a { 
   color: var(--color-text-muted);
+  font-weight: 500;
   transition: color 0.3s ease;
 }
 a:hover { 

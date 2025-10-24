@@ -1,6 +1,7 @@
 ---
 import "../styles/global.css";
-import Header from "../components/Header.astro";
+import Header from "../components/layout/Header.astro";
+import themeInitScript from '../scripts/themeInit.js?raw'; // import script as raw string
 
 const locale = Astro.currentLocale;
 ---
@@ -12,6 +13,7 @@ const locale = Astro.currentLocale;
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
 		<title>Daryl</title>
+		<script is:inline set:html={themeInitScript}></script>
 	</head>
 	<body>
     <Header title="Portfolio"/>
