@@ -1,0 +1,240 @@
+---
+---
+<div class="blob-container">
+  <svg class="blob-svg">
+    <defs>
+      <filter id="goo">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="20" result="blur"/>
+        <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 30 -10" result="goo"/>
+        <feComposite in="SourceGraphic" in2="goo" operator="atop"/>
+      </filter>
+    </defs>
+  </svg>
+
+  <div class="blob blob-1" data-speed="0.08"></div>
+  <div class="blob blob-2" data-speed="0.06"></div>
+  <div class="blob blob-3" data-speed="0.1"></div>
+  <div class="blob blob-4" data-speed="0.072"></div>
+  <div class="blob blob-5" data-speed="0.09"></div>
+  <div class="blob blob-6" data-speed="0.065"></div>
+</div>
+
+<script>
+  class BlobBackground {
+    blobs: NodeListOf<HTMLElement>;
+    mouseX: number;
+    mouseY: number;
+    targetX: number;
+    targetY: number;
+    blobPositions: Array<{ x: number; y: number }>;
+    blobScales: Array<number>;
+    blobOpacities: Array<number>;
+    maxScale: number;
+    maxOpacity: number;
+    time: number;
+    animationStartTime: number;
+
+    constructor() {
+      this.blobs = document.querySelectorAll<HTMLElement>('.blob');
+      this.mouseX = 0;
+      this.mouseY = 0;
+      this.targetX = 0;
+      this.targetY = 0;
+      this.blobPositions = Array.from(this.blobs).map(() => ({ x: 0, y: 0 }));
+      this.blobScales = Array.from(this.blobs).map(() => 0);
+      this.blobOpacities = Array.from(this.blobs).map(() => 0);
+      this.maxScale = 1;
+      this.maxOpacity = 0.6;
+      this.time = 0;
+      this.animationStartTime = Date.now();
+      this.init();
+    }
+
+    init() {
+      document.addEventListener('mousemove', (e) => {
+        this.targetX = (e.clientX / window.innerWidth - 0.5) * 2;
+        this.targetY = (e.clientY / window.innerHeight - 0.5) * 2;
+      });
+
+      this.animate();
+    }
+
+    animate() {
+      this.time += 0.015;
+      const elapsed = Date.now() - this.animationStartTime;
+      
+      // Handle fade-in animation for each blob with staggered timing
+      this.blobs.forEach((blob, index) => {
+        const delay = index * 200; // delay between each blob
+        const animationDuration = 2000; 
+        const animationStart = delay;
+        
+        if (elapsed >= animationStart) {
+          const progress = Math.min((elapsed - animationStart) / animationDuration, 1);
+          const easeOut = 1 - Math.pow(1 - progress, 3);
+          
+          this.blobScales[index] = easeOut * this.maxScale;
+          this.blobOpacities[index] = easeOut * this.maxOpacity;
+        }
+        
+        // Apply mouse interaction
+        this.mouseX += (this.targetX - this.mouseX) * 0.1;
+        this.mouseY += (this.targetY - this.mouseY) * 0.1;
+        
+        const speed = parseFloat(blob.dataset.speed || '0.02');
+        const pos = this.blobPositions[index];
+        
+        // Add autonomous movement with different frequencies for each blob
+        const autoX = Math.sin(this.time * (0.5 + index * 0.2)) * 60;
+        const autoY = Math.cos(this.time * (0.3 + index * 0.15)) * 60;
+
+        const targetX = (-this.mouseX * 600 * speed) + autoX;
+        const targetY = (-this.mouseY * 600 * speed) + autoY;
+        
+        pos.x += (targetX - pos.x) * 0.2;
+        pos.y += (targetY - pos.y) * 0.2;
+        
+        // Apply all transformations
+        blob.style.transform = `translate(calc(-50% + ${pos.x}px), calc(-50% + ${pos.y}px)) scale(${this.blobScales[index]})`;
+        blob.style.opacity = this.blobOpacities[index].toString();
+      });
+
+      requestAnimationFrame(() => this.animate());
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => new BlobBackground());
+  } else {
+    new BlobBackground();
+  }
+</script>
+
+<style>
+  .blob-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .blob-svg {
+    position: absolute;
+    width: 0;
+    height: 0;
+  }
+
+  .blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: url(#goo) blur(40px);
+    opacity: 0;
+    transform: scale(0);
+    will-change: transform, opacity;
+  }
+
+  .blob-1 {
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.8), transparent);
+    top: 50%;
+    left: 70%;
+    transform: translate(-50%, -50%);
+  }
+
+  .blob-2 {
+    width: 450px;
+    height: 450px;
+    background: radial-gradient(circle, rgba(168, 85, 247, 0.7), transparent);
+    top: 50%;
+    left: 70%;
+    transform: translate(-50%, -50%);
+  }
+
+  .blob-3 {
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(236, 72, 153, 0.6), transparent);
+    top: 50%;
+    left: 70%;
+    transform: translate(-50%, -50%);
+  }
+
+  .blob-4 {
+    width: 350px;
+    height: 350px;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.7), transparent);
+    top: 50%;
+    left: 70%;
+    transform: translate(-50%, -50%);
+  }
+
+  .blob-5 {
+    width: 380px;
+    height: 380px;
+    background: radial-gradient(circle, rgba(20, 184, 166, 0.65), transparent);
+    top: 50%;
+    left: 70%;
+    transform: translate(-50%, -50%);
+  }
+
+  .blob-6 {
+    width: 320px;
+    height: 320px;
+    background: radial-gradient(circle, rgba(251, 146, 60, 0.6), transparent);
+    top: 50%;
+    left: 70%;
+    transform: translate(-50%, -50%);
+  }
+
+
+  :global(html:not([data-theme="light"])) .blob {
+    opacity: 0.3;
+  }
+
+  :global([data-theme="light"]) .blob {
+    opacity: 0.15;
+  }
+
+  @media (max-width: 768px) {
+    :global(.blob-1) {
+      width: 350px;
+      height: 350px;
+    }
+    
+    :global(.blob-2) {
+      width: 300px;
+      height: 300px;
+    }
+    
+    :global(.blob-3) {
+      width: 280px;
+      height: 280px;
+    }
+    
+    :global(.blob-4) {
+      width: 240px;
+      height: 240px;
+    }
+
+    :global(.blob-5) {
+      width: 260px;
+      height: 260px;
+    }
+
+    :global(.blob-6) {
+      width: 220px;
+      height: 220px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :global(.blob) {
+      animation: none;
+    }
+  }
+</style>
