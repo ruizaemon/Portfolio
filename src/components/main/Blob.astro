@@ -33,6 +33,7 @@
     maxOpacity: number;
     time: number;
     animationStartTime: number;
+    isMobile: boolean;
 
     constructor() {
       this.blobs = document.querySelectorAll<HTMLElement>('.blob');
@@ -47,14 +48,24 @@
       this.maxOpacity = 0.6;
       this.time = 0;
       this.animationStartTime = Date.now();
+      this.isMobile = this.detectMobile();
       this.init();
     }
 
+    detectMobile(): boolean {
+      return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+             window.innerWidth <= 768 || 
+             ('ontouchstart' in window);
+    }
+
     init() {
-      document.addEventListener('mousemove', (e) => {
-        this.targetX = (e.clientX / window.innerWidth - 0.5) * 2;
-        this.targetY = (e.clientY / window.innerHeight - 0.5) * 2;
-      });
+      // Only add mouse interaction on non-mobile devices
+      if (!this.isMobile) {
+        document.addEventListener('mousemove', (e) => {
+          this.targetX = (e.clientX / window.innerWidth - 0.5) * 2;
+          this.targetY = (e.clientY / window.innerHeight - 0.5) * 2;
+        });
+      }
 
       this.animate();
     }
@@ -77,10 +88,6 @@
           this.blobOpacities[index] = easeOut * this.maxOpacity;
         }
         
-        // Apply mouse interaction
-        this.mouseX += (this.targetX - this.mouseX) * 0.1;
-        this.mouseY += (this.targetY - this.mouseY) * 0.1;
-        
         const speed = parseFloat(blob.dataset.speed || '0.02');
         const pos = this.blobPositions[index];
         
@@ -88,8 +95,17 @@
         const autoX = Math.sin(this.time * (0.5 + index * 0.2)) * 60;
         const autoY = Math.cos(this.time * (0.3 + index * 0.15)) * 60;
 
-        const targetX = (-this.mouseX * 600 * speed) + autoX;
-        const targetY = (-this.mouseY * 600 * speed) + autoY;
+        let targetX = autoX;
+        let targetY = autoY;
+
+        // Apply mouse interaction only on non-mobile devices
+        if (!this.isMobile) {
+          this.mouseX += (this.targetX - this.mouseX) * 0.1;
+          this.mouseY += (this.targetY - this.mouseY) * 0.1;
+          
+          targetX = (-this.mouseX * 600 * speed) + autoX;
+          targetY = (-this.mouseY * 600 * speed) + autoY;
+        }
         
         pos.x += (targetX - pos.x) * 0.2;
         pos.y += (targetY - pos.y) * 0.2;
