@@ -207,50 +207,35 @@
     transform: translate(-50%, -50%);
   }
 
-
-  :global(html:not([data-theme="light"])) .blob {
-    opacity: 0.3;
-  }
-
-  :global([data-theme="light"]) .blob {
-    opacity: 0.15;
-  }
-
   @media (max-width: 768px) {
-    :global(.blob-1) {
-      width: 350px;
-      height: 350px;
-    }
-    
-    :global(.blob-2) {
+    .blob-1 {
       width: 300px;
       height: 300px;
     }
-    
-    :global(.blob-3) {
-      width: 280px;
-      height: 280px;
+
+    .blob-2 {
+      width: 270px;
+      height: 270px;
     }
-    
-    :global(.blob-4) {
+
+    .blob-3 {
       width: 240px;
       height: 240px;
     }
 
-    :global(.blob-5) {
-      width: 260px;
-      height: 260px;
+    .blob-4 {
+      width: 210px;
+      height: 210px;
     }
 
-    :global(.blob-6) {
-      width: 220px;
-      height: 220px;
+    .blob-5 {
+      width: 230px;
+      height: 230px;
     }
-  }
 
-  @media (prefers-reduced-motion: reduce) {
-    :global(.blob) {
-      animation: none;
+    .blob-6 {
+      width: 190px;
+      height: 190px;
     }
   }
 </style>

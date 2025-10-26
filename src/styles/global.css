@@ -20,7 +20,11 @@
 
 html {
   background-color: var(--color-background);
-  font-family: 'JetBrains Mono Variable', monospace;
+  font-family: 'JetBrains Mono Variable', 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* View Transitions API for smooth theme changes */
@@ -57,4 +61,22 @@ a {
 }
 a:hover { 
   color: var(--color-primary);
+}
+
+/* Custom animations */
+@keyframes fadeInUp {
+  0% {
+    transform: translateY(20%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0%);
+    opacity: 1;
+  }
+}
+
+.animate-fadeInUp {
+  opacity: 0;
+  animation: 1s fadeInUp;
+  animation-fill-mode: forwards;
 }
