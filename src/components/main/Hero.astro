@@ -1,0 +1,51 @@
+---
+---
+<div class="hero-container">
+  <h1 class="hero-title">Hey, I'm <span style="color: var(--color-primary);">Daryl</span>!</h1>
+  <div class="hero-subtitle-container">
+    <span class="hero-subtitle">Full Stack Developer in Progress </span>
+    <span class="hero-subtitle-separator">•</span>
+    <span class="hero-subtitle-location">📍Japan | Singapore</span>
+  </div>
+  <p class="hero-description">Lorem ipsum dolor sit amet, consectetur adipiscing elit, 
+    sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
+    Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat</p>
+</div>
+
+<style>
+  .hero-container {
+    text-align: center;
+  }
+  .hero-title {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+  }
+  .hero-subtitle-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .hero-subtitle-separator {
+    color: var(--color-primary);
+    margin: 0 0.5rem;
+  }
+  .hero-description {
+    font-size: 1.25rem;
+    margin-top: 2rem;
+  }
+
+  @media (min-width: 768px) {
+    .hero-container {
+      max-width: 65ch;
+      text-align: left;
+    }
+    .hero-title {
+      font-size: 4rem;
+      margin-bottom: 0;
+    }
+    .hero-subtitle-container {
+      display: block;
+    }
+  }
+</style>

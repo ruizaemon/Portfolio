@@ -17,6 +17,22 @@ const locale = Astro.currentLocale;
 	</head>
 	<body>
     <Header title="Portfolio"/>
-    <slot />
+		<main class="main-container">
+      <slot />
+    </main>
 	</body>
 </html>
+
+<style>
+	.main-container {
+		position: relative;
+		z-index: 1;
+		padding-top: 2rem;
+	}
+
+	@media (min-width: 768px) {
+		.main-container {
+			padding-top: 4rem;
+		}
+	}
+</style>
