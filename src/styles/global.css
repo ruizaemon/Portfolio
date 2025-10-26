@@ -20,7 +20,7 @@
 
 html {
   background-color: var(--color-background);
-  font-family: 'JetBrains Mono';
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
 }
 
 /* View Transitions API for smooth theme changes */
