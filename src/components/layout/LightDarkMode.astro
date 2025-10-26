@@ -21,10 +21,9 @@
   };
 
   // Ripple animation function
-  const createRippleAnimation = (event: MouseEvent | TouchEvent) => {
-    // Get coordinates from either mouse or touch event
-    const x = 'clientX' in event ? event.clientX : event.touches[0].clientX;
-    const y = 'clientY' in event ? event.clientY : event.touches[0].clientY;
+  const createRippleAnimation = (event: MouseEvent) => {
+    const x = event.clientX;
+    const y = event.clientY;
     
     // Calculate the distance to the farthest corner
     const endRadius = Math.hypot(
@@ -32,15 +31,17 @@
       Math.max(y, window.innerHeight - y)
     );
 
-    const currentTheme = localStorage.getItem('theme') || 'dark';
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-
     // Check if View Transitions API is supported
     if (!document.startViewTransition) {
-      // Fallback: create a custom ripple animation
-      createFallbackRippleAnimation(x, y, endRadius, newTheme);
+      // Fallback: just change theme without animation
+      const currentTheme = localStorage.getItem('theme') || 'dark';
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      setTheme(newTheme);
       return;
     }
+
+    const currentTheme = localStorage.getItem('theme') || 'dark';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
 
     // Create the transition
     const transition = document.startViewTransition(() => {
@@ -68,48 +69,9 @@
     });
   };
 
-  // Fallback ripple animation for devices without View Transitions API
-  const createFallbackRippleAnimation = (x: number, y: number, endRadius: number, newTheme: string) => {
-    // Create a temporary overlay for the ripple effect
-    const overlay = document.createElement('div');
-    overlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      pointer-events: none;
-      z-index: 9999;
-      background: ${newTheme === 'light' ? '#FAFAFA' : '#1C1C22'};
-      clip-path: circle(0px at ${x}px ${y}px);
-    `;
-    
-    document.body.appendChild(overlay);
-    
-    // Animate the ripple
-    overlay.animate([
-      { clipPath: `circle(0px at ${x}px ${y}px)` },
-      { clipPath: `circle(${endRadius}px at ${x}px ${y}px)` }
-    ], {
-      duration: 500,
-      easing: 'ease-out'
-    }).onfinish = () => {
-      // Change theme and remove overlay
-      setTheme(newTheme);
-      overlay.remove();
-    };
-  };
-
-  // Toggle theme on button click/touch with animation
+  // Toggle theme on button click with animation
   const themeToggle = document.querySelector('.theme-toggle');
   if (themeToggle) {
-    // Use touchstart for immediate response on mobile (avoids 300ms delay)
-    themeToggle.addEventListener('touchstart', (e) => {
-      e.preventDefault(); // Prevent default touch behavior
-      createRippleAnimation(e as TouchEvent);
-    }, { passive: false });
-    
-    // Keep click for desktop and as fallback
     themeToggle.addEventListener('click', (e) => {
       createRippleAnimation(e as MouseEvent);
     });
