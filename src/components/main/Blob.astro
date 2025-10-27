@@ -29,11 +29,19 @@
     blobPositions: Array<{ x: number; y: number }>;
     blobScales: Array<number>;
     blobOpacities: Array<number>;
-    maxScale: number;
-    maxOpacity: number;
     time: number;
     animationStartTime: number;
     isMobile: boolean;
+    blobAnimationDuration: number;
+    blobAnimationDelay: number;
+    maxScale: number;
+    maxOpacity: number;
+    oscillationMagnitude: number;
+    oscillationXFrequency: number;
+    oscillationYFrequency: number;
+    mouseForce: number;
+    mouseSmoothing: number;
+    blobPosLerp: number;
 
     constructor() {
       this.blobs = document.querySelectorAll<HTMLElement>('.blob');
@@ -44,11 +52,22 @@
       this.blobPositions = Array.from(this.blobs).map(() => ({ x: 0, y: 0 }));
       this.blobScales = Array.from(this.blobs).map(() => 0);
       this.blobOpacities = Array.from(this.blobs).map(() => 0);
-      this.maxScale = 1;
-      this.maxOpacity = 0.6;
       this.time = 0;
       this.animationStartTime = Date.now();
       this.isMobile = this.detectMobile();
+      
+      /* Blob animation parameters */
+      this.blobAnimationDuration = 2000;
+      this.blobAnimationDelay = 200; // delay between each blob
+      this.maxScale = 1; // max scale of the blob
+      this.maxOpacity = 0.6; // max opacity of the blob
+      this.oscillationMagnitude = 60;
+      this.oscillationXFrequency = 0.5;
+      this.oscillationYFrequency = 0.3;
+      this.mouseForce = 1500; // how much the blob is affected by the mouse movement
+      this.mouseSmoothing = 0.003; // how quickly mouseX and mouseY tracks the mouse position
+      this.blobPosLerp = 0.05; // how quickly position of blob approaches target position
+      
       this.init();
     }
 
@@ -61,6 +80,7 @@
     init() {
       // Only add mouse interaction on non-mobile devices
       if (!this.isMobile) {
+        // Maps screen coordinates to [-1, 1] range
         document.addEventListener('mousemove', (e) => {
           this.targetX = (e.clientX / window.innerWidth - 0.5) * 2;
           this.targetY = (e.clientY / window.innerHeight - 0.5) * 2;
@@ -71,17 +91,16 @@
     }
 
     animate() {
-      this.time += 0.015;
+      this.time += 0.015; // for autonomous movement
       const elapsed = Date.now() - this.animationStartTime;
       
       // Handle fade-in animation for each blob with staggered timing
       this.blobs.forEach((blob, index) => {
-        const delay = index * 200; // delay between each blob
-        const animationDuration = 2000; 
+        const delay = index * this.blobAnimationDelay; // delay between each blob
         const animationStart = delay;
         
         if (elapsed >= animationStart) {
-          const progress = Math.min((elapsed - animationStart) / animationDuration, 1);
+          const progress = Math.min((elapsed - animationStart) / this.blobAnimationDuration, 1);
           const easeOut = 1 - Math.pow(1 - progress, 3);
           
           this.blobScales[index] = easeOut * this.maxScale;
@@ -92,23 +111,24 @@
         const pos = this.blobPositions[index];
         
         // Add autonomous movement with different frequencies for each blob
-        const autoX = Math.sin(this.time * (0.5 + index * 0.2)) * 60;
-        const autoY = Math.cos(this.time * (0.3 + index * 0.15)) * 60;
+        const autoX = Math.sin(this.time * (this.oscillationXFrequency + index * 0.2)) * this.oscillationMagnitude;
+        const autoY = Math.cos(this.time * (this.oscillationYFrequency + index * 0.15)) * this.oscillationMagnitude;
 
         let targetX = autoX;
         let targetY = autoY;
 
         // Apply mouse interaction only on non-mobile devices
         if (!this.isMobile) {
-          this.mouseX += (this.targetX - this.mouseX) * 0.1;
-          this.mouseY += (this.targetY - this.mouseY) * 0.1;
+          // Mouse smoothing with linear interpolation
+          this.mouseX += (this.targetX - this.mouseX) * this.mouseSmoothing;
+          this.mouseY += (this.targetY - this.mouseY) * this.mouseSmoothing;
           
-          targetX = (-this.mouseX * 600 * speed) + autoX;
-          targetY = (-this.mouseY * 600 * speed) + autoY;
+          targetX = (-this.mouseX * this.mouseForce * speed) + autoX;
+          targetY = (-this.mouseY * this.mouseForce * speed) + autoY;
         }
         
-        pos.x += (targetX - pos.x) * 0.2;
-        pos.y += (targetY - pos.y) * 0.2;
+        pos.x += (targetX - pos.x) * this.blobPosLerp;
+        pos.y += (targetY - pos.y) * this.blobPosLerp;
         
         // Apply all transformations
         blob.style.transform = `translate(calc(-50% + ${pos.x}px), calc(-50% + ${pos.y}px)) scale(${this.blobScales[index]})`;
