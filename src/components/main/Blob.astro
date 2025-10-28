@@ -29,6 +29,9 @@
     blobPositions: Array<{ x: number; y: number }>;
     blobScales: Array<number>;
     blobOpacities: Array<number>;
+    blobSpeeds: Array<number>;
+    blobXFrequencies: Array<number>;
+    blobYFrequencies: Array<number>;
     time: number;
     animationStartTime: number;
     isMobile: boolean;
@@ -42,6 +45,8 @@
     mouseForce: number;
     mouseSmoothing: number;
     blobPosLerp: number;
+    fadeInComplete: boolean;
+    rafId: number | null;
 
     constructor() {
       this.blobs = document.querySelectorAll<HTMLElement>('.blob');
@@ -55,18 +60,31 @@
       this.time = 0;
       this.animationStartTime = Date.now();
       this.isMobile = this.detectMobile();
+      this.fadeInComplete = false;
+      this.rafId = null;
       
       /* Blob animation parameters */
       this.blobAnimationDuration = 2000;
       this.blobAnimationDelay = 200; // delay between each blob
       this.maxScale = 1; // max scale of the blob
       this.maxOpacity = 0.6; // max opacity of the blob
-      this.oscillationMagnitude = 60;
+      this.oscillationMagnitude = 40;
       this.oscillationXFrequency = 0.5;
       this.oscillationYFrequency = 0.3;
       this.mouseForce = 1500; // how much the blob is affected by the mouse movement
-      this.mouseSmoothing = 0.003; // how quickly mouseX and mouseY tracks the mouse position
+      this.mouseSmoothing = 0.03; // how quickly mouseX and mouseY tracks the mouse position
       this.blobPosLerp = 0.05; // how quickly position of blob approaches target position
+      
+      // Pre-cache blob speeds and frequencies to avoid parsing every frame
+      this.blobSpeeds = Array.from(this.blobs).map(blob => 
+        parseFloat(blob.dataset.speed || '0.02')
+      );
+      this.blobXFrequencies = Array.from(this.blobs).map((_, index) => 
+        this.oscillationXFrequency + index * 0.2
+      );
+      this.blobYFrequencies = Array.from(this.blobs).map((_, index) => 
+        this.oscillationYFrequency + index * 0.15
+      );
       
       this.init();
     }
@@ -92,37 +110,52 @@
 
     animate() {
       this.time += 0.015; // for autonomous movement
-      const elapsed = Date.now() - this.animationStartTime;
       
-      // Handle fade-in animation for each blob with staggered timing
-      this.blobs.forEach((blob, index) => {
-        const delay = index * this.blobAnimationDelay; // delay between each blob
-        const animationStart = delay;
+      // Handle fade-in animation (only calculate if not complete)
+      if (!this.fadeInComplete) {
+        const elapsed = Date.now() - this.animationStartTime;
+        let allComplete = true;
         
-        if (elapsed >= animationStart) {
-          const progress = Math.min((elapsed - animationStart) / this.blobAnimationDuration, 1);
-          const easeOut = 1 - Math.pow(1 - progress, 3);
+        for (let index = 0; index < this.blobs.length; index++) {
+          const animationStart = index * this.blobAnimationDelay;
           
-          this.blobScales[index] = easeOut * this.maxScale;
-          this.blobOpacities[index] = easeOut * this.maxOpacity;
+          if (elapsed >= animationStart) {
+            const progress = Math.min((elapsed - animationStart) / this.blobAnimationDuration, 1);
+            const easeOut = 1 - Math.pow(1 - progress, 3);
+            
+            this.blobScales[index] = easeOut * this.maxScale;
+            this.blobOpacities[index] = easeOut * this.maxOpacity;
+            
+            if (progress < 1) allComplete = false;
+          } else {
+            allComplete = false;
+          }
         }
         
-        const speed = parseFloat(blob.dataset.speed || '0.02');
+        this.fadeInComplete = allComplete;
+      }
+      
+      // Mouse smoothing (outside loop for non-mobile)
+      if (!this.isMobile) {
+        this.mouseX += (this.targetX - this.mouseX) * this.mouseSmoothing;
+        this.mouseY += (this.targetY - this.mouseY) * this.mouseSmoothing;
+      }
+      
+      // Update blob positions and transformations
+      for (let index = 0; index < this.blobs.length; index++) {
+        const blob = this.blobs[index];
+        const speed = this.blobSpeeds[index];
         const pos = this.blobPositions[index];
         
         // Add autonomous movement with different frequencies for each blob
-        const autoX = Math.sin(this.time * (this.oscillationXFrequency + index * 0.2)) * this.oscillationMagnitude;
-        const autoY = Math.cos(this.time * (this.oscillationYFrequency + index * 0.15)) * this.oscillationMagnitude;
+        const autoX = Math.sin(this.time * this.blobXFrequencies[index]) * this.oscillationMagnitude;
+        const autoY = Math.cos(this.time * this.blobYFrequencies[index]) * this.oscillationMagnitude;
 
         let targetX = autoX;
         let targetY = autoY;
 
         // Apply mouse interaction only on non-mobile devices
         if (!this.isMobile) {
-          // Mouse smoothing with linear interpolation
-          this.mouseX += (this.targetX - this.mouseX) * this.mouseSmoothing;
-          this.mouseY += (this.targetY - this.mouseY) * this.mouseSmoothing;
-          
           targetX = (-this.mouseX * this.mouseForce * speed) + autoX;
           targetY = (-this.mouseY * this.mouseForce * speed) + autoY;
         }
@@ -130,19 +163,29 @@
         pos.x += (targetX - pos.x) * this.blobPosLerp;
         pos.y += (targetY - pos.y) * this.blobPosLerp;
         
-        // Apply all transformations
-        blob.style.transform = `translate(calc(-50% + ${pos.x}px), calc(-50% + ${pos.y}px)) scale(${this.blobScales[index]})`;
-        blob.style.opacity = this.blobOpacities[index].toString();
-      });
+        // Apply all transformations - using translate3d for GPU acceleration
+        blob.style.transform = `translate3d(calc(-50% + ${pos.x}px), calc(-50% + ${pos.y}px), 0) scale(${this.blobScales[index]})`;
+        blob.style.opacity = String(this.blobOpacities[index]);
+      }
 
-      requestAnimationFrame(() => this.animate());
+      this.rafId = requestAnimationFrame(() => this.animate());
+    }
+    
+    destroy() {
+      if (this.rafId) {
+        cancelAnimationFrame(this.rafId);
+      }
     }
   }
 
+  let blobInstance: BlobBackground | null = null;
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => new BlobBackground());
+    document.addEventListener('DOMContentLoaded', () => {
+      blobInstance = new BlobBackground();
+    });
   } else {
-    new BlobBackground();
+    blobInstance = new BlobBackground();
   }
 </script>
 
