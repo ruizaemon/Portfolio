@@ -1,0 +1,117 @@
+---
+import { icons, type IconName } from './Icons.ts';
+
+interface Props {
+  icon?: IconName;
+  href: string;
+  target?: string;
+  rel?: string;
+  class?: string;
+  iconColorLight?: string;
+  iconColorDark?: string;
+  borderColorLight?: string;
+  borderColorDark?: string;
+  width?: string;
+  height?: string;
+}
+
+const { 
+  icon,
+  href, 
+  target = "_blank", 
+  rel = "noopener noreferrer", 
+  class: className = "",
+  iconColorLight = "",
+  iconColorDark = "",
+  borderColorLight = "",
+  borderColorDark = "",
+  width = "28px",
+  height = "28px"
+} = Astro.props;
+
+const iconData = icon ? icons[icon] : null;
+
+// Build style string with CSS custom properties for both themes
+const buildStyleString = () => {
+  const styles: string[] = [];
+  
+  if (borderColorDark) {
+    styles.push(`--border-color-dark: ${borderColorDark};`);
+  }
+  if (borderColorLight) {
+    styles.push(`--border-color-light: ${borderColorLight};`);
+  }
+  if (iconColorDark) {
+    styles.push(`--icon-color-dark: ${iconColorDark};`);
+  }
+  if (iconColorLight) {
+    styles.push(`--icon-color-light: ${iconColorLight};`);
+  }
+  
+  return styles.join(' ');
+};
+---
+
+<a 
+  class={`link-button ${className}`} 
+  href={href} 
+  target={target} 
+  rel={rel}
+  style={buildStyleString()}
+>
+  {iconData ? (
+    <svg 
+      height={height} 
+      width={width} 
+      xmlns="http://www.w3.org/2000/svg" 
+      viewBox={iconData.viewBox}
+      style="display: block;"
+    >
+      <path d={iconData.path} />
+    </svg>
+  ) : (
+    <slot />
+  )}
+</a>
+
+<style>
+  .link-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    border: 1.5px solid var(--border-color-dark, var(--border-color-light));
+    background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+  }
+  
+  /* Light mode */
+  :global([data-theme="light"]) .link-button {
+    border-color: var(--border-color-light, var(--border-color-dark));
+  }
+  
+  .link-button:hover {
+    border-color: var(--color-primary);
+    transform: translateY(-2px);
+  }
+  
+  .link-button:active {
+    transform: translateY(0);
+  }
+  
+  .link-button :global(svg path) {
+    fill: var(--icon-color-dark, var(--icon-color-light));
+    transition: fill 0.25s ease;
+  }
+  
+  /* Light mode icon color */
+  :global([data-theme="light"]) .link-button :global(svg path) {
+    fill: var(--icon-color-light, var(--icon-color-dark));
+  }
+  
+  .link-button:hover :global(svg path) {
+    fill: var(--color-primary) !important;
+  }
+</style>
