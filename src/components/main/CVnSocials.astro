@@ -23,6 +23,12 @@ import LinkButton from '../base/LinkButton.astro';
 <style>
   .cv-socials-container {
     display: flex;
+    justify-content: center;
     gap: 14px;
+  }
+  @media (min-width: 768px) {
+    .cv-socials-container {
+      justify-content: flex-start;
+    }
   }
 </style>
