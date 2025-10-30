@@ -13,6 +13,7 @@ interface Props {
   borderColorDark?: string;
   width?: string;
   height?: string;
+  text?: string;
 }
 
 const { 
@@ -26,7 +27,8 @@ const {
   borderColorLight = "",
   borderColorDark = "",
   width = "28px",
-  height = "28px"
+  height = "28px",
+  text = ""
 } = Astro.props;
 
 const iconData = icon ? icons[icon] : null;
@@ -72,6 +74,9 @@ const buildStyleString = () => {
   ) : (
     <slot />
   )}
+  {text ? 
+    <span class="link-button-text">{text}</span> 
+    : null}
 </a>
 
 <style>
@@ -80,11 +85,14 @@ const buildStyleString = () => {
     align-items: center;
     justify-content: center;
     padding: 10px;
+    gap: 0.5rem;
     border: 1.5px solid var(--border-color-dark, var(--border-color-light));
     background: transparent;
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.25s ease;
+    text-decoration: none;
+    color: inherit;
   }
   
   /* Light mode */
@@ -113,5 +121,16 @@ const buildStyleString = () => {
   
   .link-button:hover :global(svg path) {
     fill: var(--color-primary) !important;
+  }
+
+  .link-button-text {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--color-text);
+    transition: color 0.25s ease;
+  }
+
+  .link-button:hover .link-button-text {
+    color: var(--color-primary-hover);
   }
 </style>

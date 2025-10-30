@@ -3,6 +3,14 @@
   --color-primary: #00FF99;
   --color-primary-hover: #00E68A;
   --color-primary-active: #00CC7A;
+  /* Accent: complementary violet/purple to primary green */
+  --color-accent: #8B5CF6;
+  --color-accent-hover: #7C3AED;
+  --color-accent-active: #6D28D9;
+  /* Secondary: cyan/teal to pair with green */
+  --color-secondary: #06B6D4;
+  --color-secondary-hover: #0891B2;
+  --color-secondary-active: #0E7490;
   --color-background: #1C1C22;
   --color-text: white;
   --color-text-muted: rgba(255, 255, 255, 0.8);
@@ -13,6 +21,14 @@
   --color-primary: #16bb8c;
   --color-primary-hover: #059669;
   --color-primary-active: #10B981;
+  /* Accent */
+  --color-accent: #7C3AED;
+  --color-accent-hover: #6D28D9;
+  --color-accent-active: #5B21B6;
+  /* Secondary */
+  --color-secondary: #0EA5B7;
+  --color-secondary-hover: #0B8698;
+  --color-secondary-active: #0A6D7D;
   --color-background: #FAFAFA;
   --color-text: #1A1A1A;
   --color-text-muted: rgba(26, 26, 26, 0.65);
