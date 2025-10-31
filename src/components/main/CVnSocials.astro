@@ -3,13 +3,21 @@ import LinkButton from '../base/LinkButton.astro';
 ---
 <div class="cv-socials-container">
   <LinkButton 
+    icon="CV" 
+    href="/CV.pdf"
+    text="Download CV"
+    iconColorDark="var(--color-accent)"
+    borderColorDark="var(--color-accent)"
+    iconColorLight="var(--color-accent)"
+    borderColorLight="var(--color-accent)"
+  />
+  <LinkButton 
     icon="linkedin" 
     href="https://www.linkedin.com/in/daryl-ang99/"
     iconColorDark="#0077B7"
     borderColorDark="#0077B7"
     iconColorLight="#0A66C2"
     borderColorLight="#0A66C2"
-    text="LinkedIn"
   />
   <LinkButton 
     icon="github" 
@@ -18,13 +26,13 @@ import LinkButton from '../base/LinkButton.astro';
     borderColorDark="#dbd6d0"
     iconColorLight="#24292f"
     borderColorLight="#24292f"
-    text="GitHub"
   />
 </div>
 
 <style>
   .cv-socials-container {
     display: flex;
+    flex-wrap: wrap;
     justify-content: center;
     gap: 14px;
   }

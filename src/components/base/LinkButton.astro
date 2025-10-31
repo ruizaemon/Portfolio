@@ -71,9 +71,8 @@ const buildStyleString = () => {
     >
       <path d={iconData.path} />
     </svg>
-  ) : (
-    <slot />
-  )}
+  ) : null}
+
   {text ? 
     <span class="link-button-text">{text}</span> 
     : null}

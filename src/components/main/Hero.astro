@@ -4,14 +4,24 @@ import CVnSocials from "./CVnSocials.astro";
 <div class="hero-container">
   <h1 class="hero-title animate-fadeInUp" style="animation-delay: 0.1s;">Hey, I'm <span style="color: var(--color-primary);">Daryl</span>!</h1>
   <div class="hero-subtitle-container animate-fadeInUp" style="animation-delay: 0.2s;">
-    <span class="hero-subtitle">Full Stack Developer in Progress </span>
+    <span class="hero-subtitle">Full Stack Developer in Progress</span>
     <span class="hero-subtitle-separator">•</span>
     <span class="hero-subtitle-location">📍 Japan | Singapore</span>
   </div>
-  <p class="hero-description animate-fadeInUp" style="animation-delay: 0.3s;">Lorem ipsum dolor sit amet, consectetur adipiscing elit, 
-    sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
-    Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat</p>
-  <div class="hero-cv-socials animate-fadeInUp" style="animation-delay: 0.4s;">
+  <div class="hero-description">
+    <p class="animate-fadeInUp" style="animation-delay: 0.3s;">
+      Web developer with 2 years of experience building with 
+      <span class="text-highlight" style="color: var(--color-primary);">Vue</span> and 
+      <span class="text-highlight" style="color: var(--color-primary);">Python</span>. 
+    </p>
+    <p class="animate-fadeInUp" style="animation-delay: 0.4s;">
+      Continuously learning and growing — currently expanding into
+      <span class="text-highlight" style="color: var(--color-secondary);">DevOps</span>, 
+      <span class="text-highlight" style="color: var(--color-secondary);">Computer Networking</span>, and 
+      <span class="text-highlight" style="color: var(--color-secondary);">System Design</span> to take my skills to the next level.
+    </p>
+  </div>
+  <div class="hero-cv-socials animate-fadeInUp" style="animation-delay: 0.5s;">
     <CVnSocials />
   </div>
 </div>
@@ -38,6 +48,9 @@ import CVnSocials from "./CVnSocials.astro";
     font-size: 1.25rem;
     margin-top: 2rem;
     margin-bottom: 2rem;
+  }
+  .text-highlight {
+    font-weight: 600;
   }
 
   @media (min-width: 768px) {
