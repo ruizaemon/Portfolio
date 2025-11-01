@@ -7,22 +7,13 @@ const locale = Astro.currentLocale || 'en';
 <div class="hero-container">
   <h1 class="hero-title animate-fadeInUp" style="animation-delay: 0.1s;" set:html={t(locale, 'hero.title')} />
   <div class="hero-subtitle-container animate-fadeInUp" style="animation-delay: 0.2s;">
-    <span class="hero-subtitle">Full Stack Developer in Progress</span>
+    <span class="hero-subtitle">{t(locale, 'hero.subtitle')}</span>
     <span class="hero-subtitle-separator">•</span>
-    <span class="hero-subtitle-location">📍 Japan | Singapore</span>
+    <span class="hero-subtitle-location">{t(locale, 'hero.location')}</span>
   </div>
   <div class="hero-description">
-    <p class="animate-fadeInUp" style="animation-delay: 0.3s;">
-      Web developer with 2 years of experience building with 
-      <span class="text-highlight" style="color: var(--color-primary);">Vue</span> and 
-      <span class="text-highlight" style="color: var(--color-primary);">Python</span>. 
-    </p>
-    <p class="animate-fadeInUp" style="animation-delay: 0.4s;">
-      Continuously learning and growing — currently expanding into
-      <span class="text-highlight" style="color: var(--color-secondary);">DevOps</span>, 
-      <span class="text-highlight" style="color: var(--color-secondary);">Computer Networking</span>, and 
-      <span class="text-highlight" style="color: var(--color-secondary);">System Design</span> to take my skills to the next level.
-    </p>
+    <p class="animate-fadeInUp" style="animation-delay: 0.3s;" set:html={t(locale, 'hero.description-1')} />
+    <p class="animate-fadeInUp" style="animation-delay: 0.4s;" set:html={t(locale, 'hero.description-2')} />
   </div>
   <div class="hero-cv-socials animate-fadeInUp" style="animation-delay: 0.5s;">
     <CVnSocials />
@@ -52,7 +43,7 @@ const locale = Astro.currentLocale || 'en';
     margin-top: 2rem;
     margin-bottom: 2rem;
   }
-  .text-highlight {
+  .hero-description :global(.text-highlight) {
     font-weight: 600;
   }
 
