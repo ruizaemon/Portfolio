@@ -13,7 +13,7 @@
     "title": "こんにちは、私は<span style='color: var(--color-primary); white-space: nowrap;'>ダリル</span>です！",
     "subtitle": "フルスタックエンジニア（進行中）",
     "location": "📍 日本 | シンガポール",
-    "description-1": "<span class='text-highlight' style='color: var(--color-primary);'>Vue</span>と<span class='text-highlight' style='color: var(--color-primary);'>Python</span>を用いた開発に2年の経験を持つWeb開発者。",
-    "description-2": "継続的に学習と成長に励み、現在は<span class='text-highlight' style='color: var(--color-secondary);'>DevOps</span>、<span class='text-highlight' style='color: var(--color-secondary);'>コンピュータネットワーク</span>、<span class='text-highlight' style='color: var(--color-secondary);'>システム設計</span>の分野へ進出し、スキルを引き上げるべく取り組んでいます。"
+    "description-1": "<span class='text-highlight' style='color: var(--color-primary);'>Vue</span>と<span class='text-highlight' style='color: var(--color-primary);'>Python</span>をを中心に、フロントエンドからバックエンドまで幅広くWeb開発に携わってきました。",
+    "description-2": "継続的に学習と成長を重ねながら、現在は<span class='text-highlight' style='color: var(--color-secondary);'>DevOps</span>、<span class='text-highlight' style='color: var(--color-secondary);'>ネットワーク</span>、<span class='text-highlight' style='color: var(--color-secondary);'>システム設計</span>などの分野にも挑戦し、スキル向上に取り組んでいます。"
   }
 }
