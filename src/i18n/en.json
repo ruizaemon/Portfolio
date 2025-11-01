@@ -1,12 +1,15 @@
 {
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "back": "Back"
+  },
   "nav": {
     "home": "Home",
     "projects": "Projects",
     "blog": "Blog"
   },
-  "common": {
-    "loading": "Loading...",
-    "error": "An error occurred",
-    "back": "Back"
+  "hero": {
+    "title": "Hey, I'm <span style='color: var(--color-primary);'>Daryl</span>!"
   }
 }

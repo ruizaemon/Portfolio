@@ -9,12 +9,10 @@ export async function getStaticPaths() {
     params: { lang: lang.code },
   }));
 }
-
-const { lang } = Astro.params;
 ---
 
 <BaseLayout>
   <Blob />
-  <Hero lang={lang}/>
+  <Hero />
 </BaseLayout>
 

@@ -1,10 +1,11 @@
 ---
+import { t } from "@/utils/i18n";
 import CVnSocials from "./CVnSocials.astro";
 
-const { lang } = Astro.props;
+const locale = Astro.currentLocale || 'en';
 ---
 <div class="hero-container">
-  <h1 class="hero-title animate-fadeInUp" style="animation-delay: 0.1s;">Hey, I'm <span style="color: var(--color-primary);">Daryl</span>!</h1>
+  <h1 class="hero-title animate-fadeInUp" style="animation-delay: 0.1s;" set:html={t(locale, 'hero.title')} />
   <div class="hero-subtitle-container animate-fadeInUp" style="animation-delay: 0.2s;">
     <span class="hero-subtitle">Full Stack Developer in Progress</span>
     <span class="hero-subtitle-separator">•</span>
