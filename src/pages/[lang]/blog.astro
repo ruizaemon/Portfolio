@@ -1,15 +1,55 @@
 ---
-import BaseLayout from "../../layouts/BaseLayout.astro";
-import { languages } from "../../utils/languages";
+import { getCollection } from 'astro:content';
+import PostListLayout from '../../layouts/PostListLayout.astro';
+import PostCard from '../../components/main/PostCard.astro';
+import { t } from '@/utils/i18n';
+import { languages } from '@/utils/languages';
 
 export async function getStaticPaths() {
   return languages.map((lang) => ({
     params: { lang: lang.code },
   }));
 }
+
+const locale = Astro.params.lang || 'en';
+const allPosts = await getCollection('blog');
+const posts = allPosts
+  .filter((post) => post.data.lang === locale)
+  .sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime());
 ---
 
-<BaseLayout>
+<PostListLayout title={t(locale, 'blog.title')} locale={locale}>
+  {posts.length === 0 ? (
+    <p class="no-posts">{t(locale, 'blog.noPosts')}</p>
+  ) : (
+    <div class="posts-list">
+      {posts.map((post) => {
+        // Extract just the filename from the full id (e.g., "en/hello-world" -> "hello-world")
+        const filename = post.id.split('/').pop();
+        return (
+          <PostCard
+            title={post.data.title}
+            description={post.data.description}
+            pubDate={post.data.pubDate}
+            url={`/${locale}/blog/${filename}`}
+          />
+        );
+      })}
+    </div>
+  )}
+</PostListLayout>
 
-</BaseLayout>
+<style>
+  .no-posts {
+    text-align: center;
+    color: var(--color-text-muted);
+    padding: 3rem 1rem;
+    font-size: 1.125rem;
+  }
 
+  .posts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+</style>

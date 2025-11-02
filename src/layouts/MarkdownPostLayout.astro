@@ -1,0 +1,173 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import { t } from '@/utils/i18n';
+
+interface Props {
+  frontmatter: {
+    title: string;
+    description: string;
+    pubDate: Date;
+    updatedDate?: Date;
+    lang: 'en' | 'ja';
+  };
+}
+
+const { frontmatter } = Astro.props;
+const locale = frontmatter.lang;
+---
+
+<BaseLayout>
+  <article class="post-article">
+    <header class="post-header">
+      <a href={`/${locale}/blog`} class="back-link">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        {t(locale, 'common.back')}
+      </a>
+      <h1 class="post-title">{frontmatter.title}</h1>
+      <div class="post-meta">
+        <time datetime={frontmatter.pubDate.toISOString()}>
+          {new Intl.DateTimeFormat(locale === 'ja' ? 'ja-JP' : 'en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          }).format(frontmatter.pubDate)}
+        </time>
+        {frontmatter.updatedDate && (
+          <span class="updated-date">
+            ({t(locale, 'blog.updated')}: {new Intl.DateTimeFormat(locale === 'ja' ? 'ja-JP' : 'en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            }).format(frontmatter.updatedDate)})
+          </span>
+        )}
+      </div>
+    </header>
+    <div class="post-content">
+      <slot />
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .post-article {
+    max-width: 65ch;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+
+  .post-header {
+    margin-bottom: 2rem;
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    font-size: 0.875rem;
+    transition: color 0.2s ease;
+  }
+
+  .back-link:hover {
+    color: var(--color-primary);
+  }
+
+  .back-link svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .post-title {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+    color: var(--color-text);
+  }
+
+  .post-meta {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .updated-date {
+    font-style: italic;
+  }
+
+  .post-content {
+    line-height: 1.8;
+    color: var(--color-text);
+  }
+
+  .post-content :global(h1),
+  .post-content :global(h2),
+  .post-content :global(h3),
+  .post-content :global(h4) {
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    color: var(--color-text);
+  }
+
+  .post-content :global(h1) {
+    font-size: 2rem;
+  }
+
+  .post-content :global(h2) {
+    font-size: 1.75rem;
+  }
+
+  .post-content :global(h3) {
+    font-size: 1.5rem;
+  }
+
+  .post-content :global(p) {
+    margin-bottom: 1.5rem;
+  }
+
+  .post-content :global(a) {
+    color: var(--color-primary);
+    text-decoration: underline;
+  }
+
+  .post-content :global(code) {
+    background-color: rgba(0, 255, 153, 0.1);
+    padding: 0.2em 0.4em;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+
+  .post-content :global(pre) {
+    background-color: var(--color-background);
+    padding: 1rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin-bottom: 1.5rem;
+  }
+
+  .post-content :global(ul),
+  .post-content :global(ol) {
+    margin-bottom: 1.5rem;
+    padding-left: 2rem;
+  }
+
+  .post-content :global(li) {
+    margin-bottom: 0.5rem;
+  }
+
+  @media (min-width: 768px) {
+    .post-title {
+      font-size: 3rem;
+    }
+
+    .post-content {
+      font-size: 1.125rem;
+    }
+  }
+</style>
+

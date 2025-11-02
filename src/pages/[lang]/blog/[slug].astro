@@ -1,0 +1,33 @@
+---
+import { getCollection, render } from 'astro:content';
+import { languages } from '@/utils/languages';
+import MarkdownPostLayout from '@/layouts/MarkdownPostLayout.astro';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog');
+  const paths: Array<{ params: { lang: string; slug: string }; props: { post: any } }> = [];
+  
+  languages.forEach((lang) => {
+    posts
+      .filter((post) => post.data.lang === lang.code)
+      .forEach((post) => {
+        // Extract just the filename from the full id (e.g., "en/hello-world" -> "hello-world")
+        const filename = post.id.split('/').pop() as string;
+        paths.push({
+          params: { lang: lang.code, slug: filename },
+          props: { post },
+        });
+      });
+  });
+  
+  return paths;
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+---
+
+<MarkdownPostLayout frontmatter={post.data}>
+  <Content />
+</MarkdownPostLayout>
+

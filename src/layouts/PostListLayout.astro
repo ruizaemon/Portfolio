@@ -1,0 +1,44 @@
+---
+import BaseLayout from "./BaseLayout.astro";
+import { t } from "@/utils/i18n";
+
+interface Props {
+  title: string;
+  locale: string;
+}
+
+const { title, locale } = Astro.props;
+---
+
+<BaseLayout>
+  <div class="post-list-container">
+    <h2 class="post-list-title">{title}</h2>
+    <div class="post-list-content">
+      <slot />
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .post-list-title {
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  .post-list-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  @media (min-width: 768px) {
+    /* .post-list-title {
+      margin-bottom: 3rem;
+    } */
+    
+    .post-list-content {
+      gap: 2rem;
+    }
+  }
+</style>
