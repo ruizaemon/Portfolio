@@ -1,4 +1,8 @@
 {
+  "languages": {
+    "english": "English",
+    "japanese": "Japanese"
+  },
   "common": {
     "loading": "Loading...",
     "error": "An error occurred",
@@ -14,7 +18,8 @@
     "subtitle": "Full Stack Developer in Progress",
     "location": "📍 Japan | Singapore",
     "description-1": "Web developer with 2 years of experience building with <span class='text-highlight' style='color: var(--color-primary);'>Vue</span> and <span class='text-highlight' style='color: var(--color-primary);'>Python</span>.",
-    "description-2": "Continuously learning and growing — currently expanding into <span class='text-highlight' style='color: var(--color-secondary);'>DevOps</span>, <span class='text-highlight' style='color: var(--color-secondary);'>Computer Networking</span>, and <span class='text-highlight' style='color: var(--color-secondary);'>System Design</span> to take my skills to the next level."
+    "description-2": "Continuously learning and growing — currently expanding into <span class='text-highlight' style='color: var(--color-secondary);'>DevOps</span>, <span class='text-highlight' style='color: var(--color-secondary);'>Computer Networking</span>, and <span class='text-highlight' style='color: var(--color-secondary);'>System Design</span> to take my skills to the next level.",
+    "download-cv": "Download CV"
   },
   "blog": {
     "title": "Blog",

@@ -1,15 +1,32 @@
 ---
 import LinkButton from '../base/LinkButton.astro';
+import Dropdown from '../base/Dropdown.astro';
+import { t } from "@/utils/i18n";
+
+const locale = Astro.currentLocale || 'en';
 ---
 <div class="cv-socials-container">
-  <LinkButton 
-    icon="CV" 
-    href="/CV.pdf"
-    text="Download CV (WIP)"
-    iconColorDark="var(--color-accent)"
-    borderColorDark="var(--color-accent)"
-    iconColorLight="var(--color-accent)"
-    borderColorLight="var(--color-accent)"
+  <Dropdown 
+    buttonText={t(locale, 'hero.download-cv')}
+    buttonIcon="CV"
+    items={[
+      {
+        href: "/CV_en.pdf",
+        label: t(locale, 'languages.english'),
+        icon: "CV"
+      },
+      {
+        href: "/CV_ja.pdf",
+        label: t(locale, 'languages.japanese'),
+        icon: "CV"
+      }
+    ]}
+    buttonIconColorDark="var(--color-accent)"
+    buttonBorderColorDark="var(--color-accent)"
+    buttonIconColorLight="var(--color-accent)"
+    buttonBorderColorLight="var(--color-accent)"
+    itemIconColorDark="var(--color-accent)"
+    itemIconColorLight="var(--color-accent)"
   />
   <LinkButton 
     icon="linkedin" 

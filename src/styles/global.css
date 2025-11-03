@@ -5,8 +5,7 @@
   --color-primary-active: #00CC7A;
   /* Accent: complementary violet/purple to primary green */
   --color-accent: #8B5CF6;
-  --color-accent-hover: #7C3AED;
-  --color-accent-active: #6D28D9;
+  --color-accent-hover: rgba(139, 92, 246, 0.1);
   /* Secondary: cyan/teal to pair with green */
   --color-secondary: #06B6D4;
   --color-secondary-hover: #0891B2;
@@ -23,8 +22,7 @@
   --color-primary-active: #10B981;
   /* Accent */
   --color-accent: #7C3AED;
-  --color-accent-hover: #6D28D9;
-  --color-accent-active: #5B21B6;
+  --color-accent-hover: rgba(124, 58, 237, 0.15);
   /* Secondary */
   --color-secondary: #0EA5B7;
   --color-secondary-hover: #0B8698;

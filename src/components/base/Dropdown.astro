@@ -1,0 +1,307 @@
+---
+import { icons, type IconName } from './Icons.ts';
+
+interface DropdownItem {
+  href: string;
+  label: string;
+  icon?: IconName;
+  target?: string;
+  rel?: string;
+}
+
+interface Props {
+  buttonText: string;
+  buttonIcon?: IconName;
+  items: DropdownItem[];
+  buttonIconColorDark?: string;
+  buttonIconColorLight?: string;
+  buttonBorderColorDark?: string;
+  buttonBorderColorLight?: string;
+  itemIconColorDark?: string;
+  itemIconColorLight?: string;
+  class?: string;
+  id?: string;
+}
+
+const {
+  buttonText,
+  buttonIcon,
+  items,
+  buttonIconColorDark = "var(--color-accent)",
+  buttonIconColorLight = "var(--color-accent)",
+  buttonBorderColorDark = "var(--color-accent)",
+  buttonBorderColorLight = "var(--color-accent)",
+  itemIconColorDark = "var(--color-accent)",
+  itemIconColorLight = "var(--color-accent)",
+  class: className = "",
+  id = `dropdown-${Math.random().toString(36).substring(2, 9)}`
+} = Astro.props;
+
+const buttonIconData = buttonIcon ? icons[buttonIcon] : null;
+---
+
+<div class={`dropdown-wrapper ${className}`} data-dropdown-wrapper-id={id}>
+  <button 
+    class="dropdown-button" 
+    aria-expanded="false" 
+    aria-haspopup="menu"
+    data-dropdown-id={id}
+    style={`
+      --button-icon-color-dark: ${buttonIconColorDark};
+      --button-icon-color-light: ${buttonIconColorLight};
+      --button-border-color-dark: ${buttonBorderColorDark};
+      --button-border-color-light: ${buttonBorderColorLight};
+    `}
+  >
+    {buttonIconData ? (
+      <svg 
+        height="28px" 
+        width="28px" 
+        xmlns="http://www.w3.org/2000/svg" 
+        viewBox={buttonIconData.viewBox}
+        style="display: block;"
+        class="dropdown-button-icon"
+      >
+        <path d={buttonIconData.path} />
+      </svg>
+    ) : null}
+    <span class="dropdown-button-text">{buttonText}</span>
+    <svg class="dropdown-chevron" width="12" height="8" viewBox="0 0 12 8" fill="none">
+      <path d="M1 1.5L6 6.5L11 1.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
+  
+  <ul class="dropdown-menu" role="menu" data-dropdown-menu-id={id}>
+    {items.map((item) => {
+      const itemIconData = item.icon ? icons[item.icon] : null;
+      return (
+        <li class="dropdown-item" role="menuitem">
+          <a 
+            href={item.href} 
+            target={item.target || "_blank"} 
+            rel={item.rel || "noopener noreferrer"} 
+            class="dropdown-link"
+            style={`
+              --item-icon-color-dark: ${itemIconColorDark};
+              --item-icon-color-light: ${itemIconColorLight};
+            `}
+          >
+            {itemIconData ? (
+              <svg 
+                height="20px" 
+                width="20px" 
+                xmlns="http://www.w3.org/2000/svg" 
+                viewBox={itemIconData.viewBox}
+                style="display: block;"
+              >
+                <path d={itemIconData.path} />
+              </svg>
+            ) : null}
+            <span>{item.label}</span>
+          </a>
+        </li>
+      );
+    })}
+  </ul>
+</div>
+
+<script>
+  function initDropdown(dropdownId: string) {
+    const button = document.querySelector(`[data-dropdown-id="${dropdownId}"]`) as HTMLButtonElement | null;
+    const menu = document.querySelector(`[data-dropdown-menu-id="${dropdownId}"]`) as HTMLUListElement | null;
+    
+    if (!button || !menu) return;
+    
+    button.addEventListener('click', (e: MouseEvent) => {
+      e.stopPropagation();
+      const isExpanded = button.getAttribute('aria-expanded') === 'true';
+      button.setAttribute('aria-expanded', (!isExpanded).toString());
+      menu.classList.toggle('open');
+    });
+    
+    // Close when clicking outside
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node | null;
+      if (target && !button.contains(target) && !menu.contains(target)) {
+        button.setAttribute('aria-expanded', 'false');
+        menu.classList.remove('open');
+      }
+    };
+    
+    document.addEventListener('click', handleClickOutside);
+    
+    // Close when clicking on a menu item
+    const links = menu.querySelectorAll<HTMLAnchorElement>('.dropdown-link');
+    links.forEach(link => {
+      link.addEventListener('click', () => {
+        button.setAttribute('aria-expanded', 'false');
+        menu.classList.remove('open');
+      });
+    });
+  }
+  
+  // Initialize all dropdowns on the page
+  // We do this because Astro bundles/deduplicates identical script tags,
+  // so multiple Dropdown components share one script instance
+  const initAllDropdowns = () => {
+    const dropdownWrappers = document.querySelectorAll<HTMLElement>('[data-dropdown-wrapper-id]');
+    dropdownWrappers.forEach(wrapper => {
+      const dropdownId = wrapper.getAttribute('data-dropdown-wrapper-id');
+      // Skip if already initialized (prevents duplicate event listeners)
+      if (dropdownId && !wrapper.hasAttribute('data-dropdown-initialized')) {
+        wrapper.setAttribute('data-dropdown-initialized', 'true');
+        initDropdown(dropdownId);
+      }
+    });
+  };
+  
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAllDropdowns);
+  } else {
+    // DOM already ready, initialize immediately
+    initAllDropdowns();
+  }
+</script>
+
+<style>
+  .dropdown-wrapper {
+    position: relative;
+  }
+
+  .dropdown-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    gap: 0.5rem;
+    border: 1.5px solid var(--button-border-color-dark, var(--button-border-color-light));
+    background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    text-decoration: none;
+    color: inherit;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 500;
+  }
+
+  /* Light mode */
+  :global([data-theme="light"]) .dropdown-button {
+    border-color: var(--button-border-color-light, var(--button-border-color-dark));
+  }
+
+  .dropdown-button:hover {
+    border-color: var(--color-primary);
+  }
+
+  .dropdown-button[aria-expanded="true"] {
+    border-color: var(--color-primary);
+  }
+
+  .dropdown-button[aria-expanded="true"] .dropdown-chevron {
+    transform: rotate(180deg);
+  }
+
+  .dropdown-button-icon {
+    flex-shrink: 0;
+  }
+
+  .dropdown-button :global(.dropdown-button-icon path) {
+    fill: var(--button-icon-color-dark, var(--button-icon-color-light));
+    transition: fill 0.25s ease;
+  }
+
+  /* Light mode icon color */
+  :global([data-theme="light"]) .dropdown-button :global(.dropdown-button-icon path) {
+    fill: var(--button-icon-color-light, var(--button-icon-color-dark));
+  }
+
+  .dropdown-button:hover :global(.dropdown-button-icon path),
+  .dropdown-button[aria-expanded="true"] :global(.dropdown-button-icon path) {
+    fill: var(--color-primary) !important;
+  }
+
+  .dropdown-button-text {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--color-text);
+    transition: color 0.25s ease;
+    white-space: nowrap;
+  }
+
+  .dropdown-button:hover .dropdown-button-text,
+  .dropdown-button[aria-expanded="true"] .dropdown-button-text {
+    color: var(--color-primary-hover);
+  }
+
+  .dropdown-chevron {
+    transition: transform 0.3s ease;
+    flex-shrink: 0;
+    margin-left: 0.25rem;
+  }
+
+  .dropdown-button .dropdown-chevron path {
+    stroke: currentColor;
+  }
+
+  .dropdown-menu {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 0;
+    background: var(--color-background);
+    border: 1px solid var(--color-text-muted);
+    border-radius: 8px;
+    padding: 0.5rem 0;
+    list-style: none;
+    margin: 0;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    min-width: 180px;
+  }
+
+  .dropdown-menu.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  .dropdown-item {
+    margin: 0;
+  }
+
+  .dropdown-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    color: var(--color-text);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    font-size: 0.95rem;
+  }
+
+  .dropdown-link :global(svg path) {
+    fill: var(--item-icon-color-dark, var(--item-icon-color-light));
+    transition: fill 0.25s ease;
+  }
+
+  /* Light mode item icon color */
+  :global([data-theme="light"]) .dropdown-link :global(svg path) {
+    fill: var(--item-icon-color-light, var(--item-icon-color-dark));
+  }
+
+  .dropdown-link:hover {
+    background: var(--color-accent-hover);
+    color: var(--color-primary);
+  }
+
+  .dropdown-link:hover :global(svg path) {
+    fill: var(--color-primary);
+  }
+</style>
+
