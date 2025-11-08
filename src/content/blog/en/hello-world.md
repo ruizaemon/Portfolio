@@ -1,6 +1,6 @@
 ---
 title: Hello World
-description: My first blog post - a simple introduction to my blog.
+description: My first blog post - a simple introduction
 pubDate: 2025-11-01
 updatedDate: 2025-11-08
 lang: en
