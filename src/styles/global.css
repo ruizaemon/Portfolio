@@ -43,6 +43,7 @@ html {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  scrollbar-gutter: stable;
 }
 
 /* View Transitions API for smooth theme changes */
@@ -84,7 +85,7 @@ a:hover {
 /* Custom animations */
 @keyframes fadeInUp {
   0% {
-    transform: translateY(20%);
+    transform: translateY(30px);
     opacity: 0;
   }
   100% {
