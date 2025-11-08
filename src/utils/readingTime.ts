@@ -1,13 +1,18 @@
 /**
  * Calculates the estimated reading time for a markdown content string.
+ * Supports both English (word-based) and Japanese (character-based) calculations.
  * 
  * @param content - The markdown content string
- * @param wordsPerMinute - Average reading speed (default: 200 words per minute)
+ * @param lang - Language code ('en' or 'ja') to determine calculation method
+ * @param wordsPerMinute - Average reading speed for English (default: 200 words per minute)
+ * @param charsPerMinute - Average reading speed for Japanese (default: 500 characters per minute)
  * @returns The estimated reading time in minutes (rounded up to at least 1 minute)
  */
 export function calculateReadingTime(
   content: string,
-  wordsPerMinute: number = 200
+  lang: 'en' | 'ja' = 'en',
+  wordsPerMinute: number = 200,
+  charsPerMinute: number = 500
 ): number {
   // Remove frontmatter (content between --- markers)
   let text = content.replace(/^---[\s\S]*?---\n/, '');
@@ -38,12 +43,19 @@ export function calculateReadingTime(
     .replace(/<[^>]+>/g, '') // HTML tags
     .trim();
   
-  // Count words (split by whitespace and filter out empty strings)
-  const words = text.split(/\s+/).filter(word => word.length > 0);
-  const wordCount = words.length;
+  let minutes: number;
   
-  // Calculate reading time (round up, minimum 1 minute)
-  const minutes = Math.max(1, Math.ceil(wordCount / wordsPerMinute));
+  if (lang === 'ja') {
+    // For Japanese, count characters (including CJK characters, hiragana, katakana, kanji)
+    // Remove whitespace for character count as it's not meaningful in Japanese
+    const charCount = text.replace(/\s+/g, '').length;
+    minutes = Math.max(1, Math.ceil(charCount / charsPerMinute));
+  } else {
+    // For English and other languages, count words (split by whitespace)
+    const words = text.split(/\s+/).filter(word => word.length > 0);
+    const wordCount = words.length;
+    minutes = Math.max(1, Math.ceil(wordCount / wordsPerMinute));
+  }
   
   return minutes;
 }

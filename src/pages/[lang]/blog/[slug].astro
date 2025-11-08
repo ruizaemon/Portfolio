@@ -32,7 +32,7 @@ const { Content } = await render(post);
 // Calculate reading time from raw markdown content
 const markdownPath = join(process.cwd(), 'src', 'content', 'blog', `${post.id}.md`);
 const rawContent = readFileSync(markdownPath, 'utf-8');
-const readingTime = calculateReadingTime(rawContent);
+const readingTime = calculateReadingTime(rawContent, post.data.lang);
 ---
 
 <MarkdownPostLayout frontmatter={post.data} readingTime={readingTime}>
