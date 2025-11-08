@@ -1,18 +1,16 @@
 ---
 import BaseLayout from "./BaseLayout.astro";
-import { t } from "@/utils/i18n";
 
 interface Props {
   title: string;
-  locale: string;
 }
 
-const { title, locale } = Astro.props;
+const { title } = Astro.props;
 ---
 
 <BaseLayout>
   <div class="post-list-container">
-    <h2 class="post-list-title">{title}</h2>
+    <h2 class="post-list-title animate-fadeInUp">{title}</h2>
     <div class="post-list-content">
       <slot />
     </div>

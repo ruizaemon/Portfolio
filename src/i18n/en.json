@@ -24,6 +24,7 @@
   "blog": {
     "title": "Blog",
     "noPosts": "No posts yet. Check back soon!",
-    "updated": "Updated"
+    "updated": "Updated",
+    "minRead": "min read"
   }
 }

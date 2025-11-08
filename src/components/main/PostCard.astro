@@ -4,9 +4,10 @@ interface Props {
   description: string;
   pubDate: Date;
   url: string;
+  animationDelay: number;
 }
 
-const { title, description, pubDate, url } = Astro.props;
+const { title, description, pubDate, url, animationDelay } = Astro.props;
 
 const formattedDate = new Intl.DateTimeFormat('en-US', {
   year: 'numeric',
@@ -15,7 +16,7 @@ const formattedDate = new Intl.DateTimeFormat('en-US', {
 }).format(pubDate);
 ---
 
-<a href={url} class="post-card">
+<a href={url} class="post-card animate-fadeInUp" style={`animation-delay: ${animationDelay}s;`}>
   <article>
     <h3 class="post-card-title">{title}</h3>
     <p class="post-card-description">{description}</p>

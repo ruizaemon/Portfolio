@@ -10,42 +10,53 @@ interface Props {
     updatedDate?: Date;
     lang: 'en' | 'ja';
   };
+  readingTime?: number;
 }
 
-const { frontmatter } = Astro.props;
+const { frontmatter, readingTime } = Astro.props;
 const locale = frontmatter.lang;
 ---
 
 <BaseLayout>
   <article class="post-article">
     <header class="post-header">
-      <a href={`/${locale}/blog`} class="back-link">
+      <a href={`/${locale}/blog/`} class="back-link">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M19 12H5M12 19l-7-7 7-7"/>
         </svg>
         {t(locale, 'common.back')}
       </a>
-      <h1 class="post-title">{frontmatter.title}</h1>
-      <div class="post-meta">
-        <time datetime={frontmatter.pubDate.toISOString()}>
-          {new Intl.DateTimeFormat(locale === 'ja' ? 'ja-JP' : 'en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          }).format(frontmatter.pubDate)}
-        </time>
-        {frontmatter.updatedDate && (
-          <span class="updated-date">
-            ({t(locale, 'blog.updated')}: {new Intl.DateTimeFormat(locale === 'ja' ? 'ja-JP' : 'en-US', {
+      <h2 class="post-title animate-fadeInUp">{frontmatter.title}</h2>
+      <div class="post-meta animate-fadeInUp" style="animation-delay: 0.1s;">
+        <div class="post-meta-dates">
+          <time datetime={frontmatter.pubDate.toISOString()}>
+            {new Intl.DateTimeFormat(locale === 'ja' ? 'ja-JP' : 'en-US', {
               year: 'numeric',
               month: 'long',
               day: 'numeric',
-            }).format(frontmatter.updatedDate)})
-          </span>
-        )}
+            }).format(frontmatter.pubDate)}
+          </time>
+          {frontmatter.updatedDate && (
+            <span class="updated-date">
+              ({t(locale, 'blog.updated')}: {new Intl.DateTimeFormat(locale === 'ja' ? 'ja-JP' : 'en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              }).format(frontmatter.updatedDate)})
+            </span>
+          )}
+        </div>
+        <div class="post-meta-reading-time">
+          {readingTime && (
+            <span class="reading-time">
+              {readingTime} {t(locale, 'blog.minRead')}
+            </span>
+          )}
+        </div>
       </div>
     </header>
-    <div class="post-content">
+    <div class="post-divider animate-fadeInUp" style="animation-delay: 0.2s;"></div>
+    <div class="post-content animate-fadeInUp" style="animation-delay: 0.3s;">
       <slot />
     </div>
   </article>
@@ -53,13 +64,9 @@ const locale = frontmatter.lang;
 
 <style>
   .post-article {
-    max-width: 65ch;
+    max-width: 85ch;
     margin: 0 auto;
     padding: 0 1rem;
-  }
-
-  .post-header {
-    margin-bottom: 2rem;
   }
 
   .back-link {
@@ -92,17 +99,41 @@ const locale = frontmatter.lang;
     font-size: 0.875rem;
     color: var(--color-text-muted);
     display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
+    flex-direction: row;
+    justify-content: space-between;
     gap: 0.25rem;
+  }
+
+  .post-meta-dates {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .post-meta-reading-time {
+    display: flex;
+    align-items: flex-end;
+  }
+
+  .reading-time {
+    color: var(--color-text-muted);
   }
 
   .updated-date {
     font-style: italic;
   }
 
+  .post-divider {
+    height: 1px;
+    background-color: var(--color-text-muted);
+    margin: 2rem 0;
+  }
+
   .post-content {
     line-height: 1.8;
     color: var(--color-text);
+    padding-bottom: 4rem;
   }
 
   .post-content :global(h1),
@@ -128,6 +159,7 @@ const locale = frontmatter.lang;
 
   .post-content :global(p) {
     margin-bottom: 1.5rem;
+    color: var(--color-text);
   }
 
   .post-content :global(a) {

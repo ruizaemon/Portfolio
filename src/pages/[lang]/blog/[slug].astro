@@ -2,6 +2,9 @@
 import { getCollection, render } from 'astro:content';
 import { languages } from '@/utils/languages';
 import MarkdownPostLayout from '@/layouts/MarkdownPostLayout.astro';
+import { calculateReadingTime } from '@/utils/readingTime';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 export async function getStaticPaths() {
   const posts = await getCollection('blog');
@@ -25,9 +28,14 @@ export async function getStaticPaths() {
 
 const { post } = Astro.props;
 const { Content } = await render(post);
+
+// Calculate reading time from raw markdown content
+const markdownPath = join(process.cwd(), 'src', 'content', 'blog', `${post.id}.md`);
+const rawContent = readFileSync(markdownPath, 'utf-8');
+const readingTime = calculateReadingTime(rawContent);
 ---
 
-<MarkdownPostLayout frontmatter={post.data}>
+<MarkdownPostLayout frontmatter={post.data} readingTime={readingTime}>
   <Content />
 </MarkdownPostLayout>
 

@@ -10,6 +10,8 @@
   --color-secondary: #06B6D4;
   --color-secondary-hover: #0891B2;
   --color-secondary-active: #0E7490;
+  /* Pink: vibrant pink for accents */
+  --color-pink: #f369ae;
   --color-background: #1C1C22;
   --color-text: white;
   --color-text-muted: rgba(255, 255, 255, 0.8);
@@ -27,6 +29,8 @@
   --color-secondary: #0EA5B7;
   --color-secondary-hover: #0B8698;
   --color-secondary-active: #0A6D7D;
+  /* Pink: slightly darker for better contrast on light background */
+  --color-pink: #DB2777;
   --color-background: #FAFAFA;
   --color-text: #1A1A1A;
   --color-text-muted: rgba(26, 26, 26, 0.65);

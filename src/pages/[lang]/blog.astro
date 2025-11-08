@@ -18,12 +18,12 @@ const posts = allPosts
   .sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime());
 ---
 
-<PostListLayout title={t(locale, 'blog.title')} locale={locale}>
+<PostListLayout title={t(locale, 'blog.title')}>
   {posts.length === 0 ? (
     <p class="no-posts">{t(locale, 'blog.noPosts')}</p>
   ) : (
     <div class="posts-list">
-      {posts.map((post) => {
+      {posts.map((post, index) => {
         // Extract just the filename from the full id (e.g., "en/hello-world" -> "hello-world")
         const filename = post.id.split('/').pop();
         return (
@@ -32,6 +32,7 @@ const posts = allPosts
             description={post.data.description}
             pubDate={post.data.pubDate}
             url={`/${locale}/blog/${filename}`}
+            animationDelay={(index + 1) * 0.1}
           />
         );
       })}
