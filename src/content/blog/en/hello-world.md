@@ -30,4 +30,4 @@ I plan to use the projects page to not only showcase projects but to use Astro's
 
 I wish I had more time...
 
-Anyway, until next time!
+Until next time!
