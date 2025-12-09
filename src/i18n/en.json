@@ -26,5 +26,9 @@
     "noPosts": "No posts yet. Check back soon!",
     "updated": "Updated",
     "minRead": "min read"
+  },
+  "projects": {
+    "title": "Projects",
+    "noProjects": "No projects yet. Check back soon!"
   }
 }
