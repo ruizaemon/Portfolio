@@ -50,13 +50,17 @@ const { title, image, url, animationDelay = 0 } = Astro.props;
     cursor: pointer;
   }
 
+  :global([data-theme="light"]) .project-card {
+    border: 1px solid rgba(0, 0, 0, 0.3);
+  }
+
   .project-card:hover {
     border-color: var(--color-primary);
     transform: translateY(-4px);
     box-shadow: 0 8px 24px rgba(0, 255, 153, 0.15);
   }
 
-  [data-theme="light"] .project-card:hover {
+  :global([data-theme="light"]) .project-card:hover {
     box-shadow: 0 8px 24px rgba(22, 187, 140, 0.2);
   }
 
@@ -109,11 +113,11 @@ const { title, image, url, animationDelay = 0 } = Astro.props;
     background-color: rgba(0, 255, 153, 0.05);
   }
 
-  [data-theme="light"] .project-card-content {
+  :global([data-theme="light"]) .project-card-content {
     background-color: rgba(0, 0, 0, 0.02);
   }
 
-  [data-theme="light"] .project-card:hover .project-card-content {
+  :global([data-theme="light"]) .project-card:hover .project-card-content {
     background-color: rgba(22, 187, 140, 0.08);
   }
 
