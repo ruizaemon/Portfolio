@@ -1,6 +1,6 @@
 ---
 import { getCollection } from 'astro:content';
-import BaseLayout from "../../layouts/BaseLayout.astro";
+import PostListLayout from '@/layouts/PostListLayout.astro';
 import ProjectCard from "../../components/main/ProjectCard.astro";
 import { t } from '@/utils/i18n';
 import { languages } from "../../utils/languages";
@@ -22,41 +22,27 @@ const projects = allProjects
   });
 ---
 
-<BaseLayout>
-  <div class="projects-container">
-    <h2 class="projects-title animate-fadeInUp">{t(locale, 'projects.title')}</h2>
-    {projects.length === 0 ? (
-      <p class="no-projects">{t(locale, 'projects.noProjects')}</p>
-    ) : (
-      <div class="projects-grid">
-        {projects.map((project, index) => {
-          const filename = project.id.split('/').pop();
-          return (
-            <ProjectCard
-              title={project.data.title}
-              image={project.data.image}
-              url={`/${locale}/projects/${filename}`}
-              animationDelay={(index + 1) * 0.1}
-            />
-          );
-        })}
-      </div>
-    )}
-  </div>
-</BaseLayout>
+<PostListLayout title={t(locale, 'projects.title')}>
+  {projects.length === 0 ? (
+    <p class="no-projects">{t(locale, 'projects.noProjects')}</p>
+  ) : (
+    <div class="projects-grid">
+      {projects.map((project, index) => {
+        const filename = project.id.split('/').pop();
+        return (
+          <ProjectCard
+            title={project.data.title}
+            image={project.data.image}
+            url={`/${locale}/projects/${filename}`}
+            animationDelay={(index + 1) * 0.1}
+          />
+        );
+      })}
+    </div>
+  )}
+</PostListLayout>
 
 <style>
-  .projects-container {
-    width: 100%;
-  }
-
-  .projects-title {
-    font-size: 2rem;
-    font-weight: 600;
-    color: var(--color-text);
-    margin-bottom: 2rem;
-  }
-
   .no-projects {
     text-align: center;
     color: var(--color-text-muted);

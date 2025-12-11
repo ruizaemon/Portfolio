@@ -18,7 +18,7 @@ export function t(locale: string, key: string) {
   let value: any = translation;
   
   for (const k of keys) {
-    value = value?.[k];
+    value = value?.[k]; // "?." optional chaining
   }
   
   return value || key;
