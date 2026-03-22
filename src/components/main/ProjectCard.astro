@@ -4,36 +4,28 @@ interface Props {
   image: string;
   url?: string;
   animationDelay?: number;
+  inProgress?: boolean;
 }
 
-const { title, image, url, animationDelay = 0 } = Astro.props;
+const { title, image, url, animationDelay = 0, inProgress = false } = Astro.props;
+
+const Tag = url ? 'a' : 'div';
 ---
 
-{url ? (
-  <a href={url} class="project-card animate-fadeInUp" style={`animation-delay: ${animationDelay}s;`}>
-    <div class="project-card-image-wrapper">
-      <img src={image} alt={title} class="project-card-image" loading="lazy" />
-      <div class="project-card-overlay"></div>
-    </div>
-    <div class="project-card-content">
-      <h3 class="project-card-title">{title}</h3>
-    </div>
-  </a>
-) : (
-  <div class="project-card animate-fadeInUp" style={`animation-delay: ${animationDelay}s;`}>
-    <div class="project-card-image-wrapper">
-      <img src={image} alt={title} class="project-card-image" loading="lazy" />
-      <div class="project-card-overlay"></div>
-    </div>
-    <div class="project-card-content">
-      <h3 class="project-card-title">{title}</h3>
-    </div>
-    <div>
-      {/* add chips as tags (In-app, Github, website, etc.) */}
-      {/* language tags (Vue, React, Svelte, etc.) */}
-    </div>
+<Tag
+  href={url}
+  class={`project-card animate-fadeInUp${inProgress ? ' project-card--in-progress' : ''}`}
+  style={`animation-delay: ${animationDelay}s;`}
+>
+  {inProgress && <span class="project-card-badge">In Progress</span>}
+  <div class="project-card-image-wrapper">
+    <img src={image} alt={title} class="project-card-image" loading="lazy" />
+    <div class="project-card-overlay"></div>
   </div>
-)}
+  <div class="project-card-content">
+    <h3 class="project-card-title">{title}</h3>
+  </div>
+</Tag>
 
 <style>
   .project-card {
@@ -48,6 +40,66 @@ const { title, image, url, animationDelay = 0 } = Astro.props;
     background-color: transparent;
     position: relative;
     cursor: pointer;
+  }
+
+  .project-card--in-progress {
+    cursor: default;
+    opacity: 0.7;
+  }
+
+  .project-card--in-progress:hover {
+    border-color: rgba(255, 255, 255, 0.1);
+    transform: none;
+    box-shadow: none;
+  }
+
+  :global([data-theme="light"]) .project-card--in-progress:hover {
+    border-color: rgba(0, 0, 0, 0.3);
+    box-shadow: none;
+  }
+
+  .project-card--in-progress:hover .project-card-image {
+    transform: none;
+  }
+
+  .project-card--in-progress:hover .project-card-overlay {
+    opacity: 0;
+  }
+
+  .project-card--in-progress:hover .project-card-content {
+    background-color: rgba(255, 255, 255, 0.02);
+  }
+
+  :global([data-theme="light"]) .project-card--in-progress:hover .project-card-content {
+    background-color: rgba(0, 0, 0, 0.02);
+  }
+
+  .project-card--in-progress:hover .project-card-title {
+    color: var(--color-text);
+  }
+
+  .project-card-badge {
+    position: absolute;
+    top: 0.625rem;
+    right: 0.625rem;
+    z-index: 1;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background-color: rgb(160, 90, 0);
+    color: rgb(255, 220, 120);
+    border: 1.5px solid rgb(255, 185, 50);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  }
+
+  :global([data-theme="light"]) .project-card-badge {
+    background-color: rgb(120, 60, 0);
+    color: rgb(255, 225, 140);
+    border-color: rgb(200, 130, 20);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
   }
 
   :global([data-theme="light"]) .project-card {

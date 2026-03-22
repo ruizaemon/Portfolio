@@ -33,8 +33,9 @@ const projects = allProjects
           <ProjectCard
             title={project.data.title}
             image={project.data.image}
-            url={`/${locale}/projects/${filename}`}
+            url={project.data.inProgress ? undefined : `/${locale}/projects/${filename}`}
             animationDelay={(index + 1) * 0.1}
+            inProgress={project.data.inProgress}
           />
         );
       })}

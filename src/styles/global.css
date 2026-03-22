@@ -96,6 +96,5 @@ a:hover {
 
 .animate-fadeInUp {
   opacity: 0;
-  animation: 1s fadeInUp;
-  animation-fill-mode: forwards;
+  animation: fadeInUp 1s ease both;
 }
