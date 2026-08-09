@@ -17,7 +17,7 @@ const { frontmatter, readingTime } = Astro.props;
 const locale = frontmatter.lang;
 ---
 
-<BaseLayout>
+<BaseLayout title={frontmatter.title} description={frontmatter.description} ogType="article">
   <article class="post-article">
     <header class="post-header">
       <a href={`/${locale}/blog/`} class="back-link">
@@ -26,7 +26,7 @@ const locale = frontmatter.lang;
         </svg>
         {t(locale, 'common.back')}
       </a>
-      <h2 class="post-title animate-fadeInUp">{frontmatter.title}</h2>
+      <h1 class="post-title animate-fadeInUp">{frontmatter.title}</h1>
       <div class="post-meta animate-fadeInUp" style="animation-delay: 0.1s;">
         <div class="post-meta-dates">
           <time datetime={frontmatter.pubDate.toISOString()}>
@@ -90,6 +90,7 @@ const locale = frontmatter.lang;
 
   .post-title {
     font-size: 2.5rem;
+    margin-top: 0.83em; /* match the h2 default this heading had before becoming an h1 */
     margin-bottom: 1rem;
     line-height: 1.2;
     color: var(--color-text);

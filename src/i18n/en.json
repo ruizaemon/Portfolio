@@ -3,6 +3,9 @@
     "english": "English",
     "japanese": "Japanese"
   },
+  "meta": {
+    "description": "Portfolio of Daryl, a full stack web developer based in Japan and Singapore, building with Vue and Python."
+  },
   "common": {
     "loading": "Loading...",
     "error": "An error occurred",

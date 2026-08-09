@@ -8,9 +8,9 @@ interface Props {
 const { title } = Astro.props;
 ---
 
-<BaseLayout>
+<BaseLayout title={title}>
   <div class="post-list-container">
-    <h2 class="post-list-title animate-fadeInUp">{title}</h2>
+    <h1 class="post-list-title animate-fadeInUp">{title}</h1>
     <div class="post-list-content">
       <slot />
     </div>
@@ -22,6 +22,7 @@ const { title } = Astro.props;
     font-size: 2rem;
     font-weight: 600;
     color: var(--color-text);
+    margin-block: 0.83em; /* match the h2 default this heading had before becoming an h1 */
   }
 
   .post-list-content {

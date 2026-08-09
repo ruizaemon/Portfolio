@@ -119,3 +119,10 @@ a:hover {
   opacity: 0;
   animation: fadeInUp 1s ease both;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fadeInUp {
+    animation: none;
+    opacity: 1;
+  }
+}

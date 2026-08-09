@@ -5,9 +5,9 @@ import LightDarkMode from "./LightDarkMode.astro";
 const { title, locale = 'en' } = Astro.props;
 ---
 <header>
-  <h1>
+  <p class="site-title">
     <a href={`/${locale}/`} class="home-link">{title}</a>
-  </h1>
+  </p>
   <LightDarkMode />
   <nav>
     <Navigation />
@@ -19,6 +19,13 @@ const { title, locale = 'en' } = Astro.props;
     display: flex;
     align-items: center;
     gap: 1rem;
+  }
+
+  /* Match the default h1 look this replaced (one h1 per page belongs to the content) */
+  .site-title {
+    font-size: 2em;
+    font-weight: bold;
+    margin: 0.67em 0;
   }
 
   .home-link {

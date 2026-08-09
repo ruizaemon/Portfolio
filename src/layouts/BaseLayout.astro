@@ -2,20 +2,30 @@
 import "@fontsource-variable/jetbrains-mono";
 import "../styles/global.css";
 import Header from "../components/layout/Header.astro";
+import { t } from "@/utils/i18n";
 import themeInitScript from '../scripts/themeInit.js?raw'; // import script as raw string
 
 const locale = Astro.currentLocale || 'en';
 // heroPage: overlay the header so the page content centers on the full viewport
-const { heroPage = false } = Astro.props;
+const { title, description, ogType = 'website', heroPage = false } = Astro.props;
+
+const siteName = 'Daryl';
+const pageTitle = title ? `${title} | ${siteName}` : `${siteName} — ${t(locale, 'hero.subtitle')}`;
+const metaDescription = description || t(locale, 'meta.description');
 ---
 
 <html lang={locale}>
 	<head>
 		<meta charset="utf-8" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="generator" content={Astro.generator} />
-		<title>Daryl</title>
+		<title>{pageTitle}</title>
+		<meta name="description" content={metaDescription} />
+		<meta property="og:title" content={pageTitle} />
+		<meta property="og:description" content={metaDescription} />
+		<meta property="og:type" content={ogType} />
+		<meta property="og:site_name" content={siteName} />
 		<script is:inline set:html={themeInitScript}></script>
 	</head>
 	<body class:list={{ 'hero-page': heroPage }}>
