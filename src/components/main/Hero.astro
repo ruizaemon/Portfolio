@@ -23,6 +23,10 @@ const locale = Astro.currentLocale || 'en';
 <style>
   .hero-container {
     text-align: center;
+    margin-top: auto;
+    margin-bottom: auto;
+    /* Lift slightly above geometric center — optical center reads higher */
+    transform: translateY(-4vh);
   }
   .hero-title {
     font-size: 3rem;

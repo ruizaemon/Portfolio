@@ -72,8 +72,29 @@ body {
   margin: 0 auto;
   max-width: 100ch;
   padding: 1rem 2rem;
+  box-sizing: border-box;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
 }
-a { 
+/* Hero pages: overlay the header on top of the content so <main>
+   spans the full viewport and its content centers on the screen */
+body.hero-page {
+  position: relative;
+}
+body.hero-page header {
+  position: absolute;
+  top: 1rem;
+  left: 2rem;
+  right: 2rem;
+  z-index: 2;
+}
+body.hero-page main.main-container {
+  padding-top: 0;
+}
+
+a {
   color: var(--color-text-muted);
   font-weight: 500;
   transition: color 0.3s ease;

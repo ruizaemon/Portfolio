@@ -5,6 +5,8 @@ import Header from "../components/layout/Header.astro";
 import themeInitScript from '../scripts/themeInit.js?raw'; // import script as raw string
 
 const locale = Astro.currentLocale || 'en';
+// heroPage: overlay the header so the page content centers on the full viewport
+const { heroPage = false } = Astro.props;
 ---
 
 <html lang={locale}>
@@ -16,7 +18,7 @@ const locale = Astro.currentLocale || 'en';
 		<title>Daryl</title>
 		<script is:inline set:html={themeInitScript}></script>
 	</head>
-	<body>
+	<body class:list={{ 'hero-page': heroPage }}>
     <Header title="Portfolio" locale={locale} />
 		<main class="main-container">
       <slot />
@@ -29,6 +31,9 @@ const locale = Astro.currentLocale || 'en';
 		position: relative;
 		z-index: 1;
 		padding-top: 3vh;
+		flex: 1;
+		display: flex;
+		flex-direction: column;
 	}
 
 	@media (min-width: 768px) {
