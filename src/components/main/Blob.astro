@@ -1,16 +1,6 @@
 ---
 ---
 <div class="blob-container">
-  <svg class="blob-svg">
-    <defs>
-      <filter id="goo">
-        <feGaussianBlur in="SourceGraphic" stdDeviation="20" result="blur"/>
-        <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 30 -10" result="goo"/>
-        <feComposite in="SourceGraphic" in2="goo" operator="atop"/>
-      </filter>
-    </defs>
-  </svg>
-
   <div class="blob blob-1" data-speed="0.08"></div>
   <div class="blob blob-2" data-speed="0.06"></div>
   <div class="blob blob-3" data-speed="0.1"></div>
@@ -22,80 +12,70 @@
 <script>
   class BlobBackground {
     blobs: NodeListOf<HTMLElement>;
-    mouseX: number;
-    mouseY: number;
-    targetX: number;
-    targetY: number;
+    mouseX = 0;
+    mouseY = 0;
+    targetX = 0;
+    targetY = 0;
     blobPositions: Array<{ x: number; y: number }>;
     blobScales: Array<number>;
     blobOpacities: Array<number>;
     blobSpeeds: Array<number>;
     blobXFrequencies: Array<number>;
     blobYFrequencies: Array<number>;
-    time: number;
-    animationStartTime: number;
+    time = 0;
+    lastFrameTime: number | null = null;
+    fadeStartTime = 0;
     isMobile: boolean;
-    blobAnimationDuration: number;
-    blobAnimationDelay: number;
-    maxScale: number;
-    maxOpacity: number;
-    oscillationMagnitude: number;
-    oscillationXFrequency: number;
-    oscillationYFrequency: number;
-    mouseForce: number;
-    mouseSmoothing: number;
-    blobPosLerp: number;
-    fadeInComplete: boolean;
-    rafId: number | null;
+    fadeInComplete = false;
+
+    /* Blob animation parameters */
+    blobAnimationDuration = 2000;
+    blobAnimationDelay = 200; // delay between each blob
+    maxScale = 1; // max scale of the blob
+    maxOpacity = 0.6; // max opacity of the blob
+    oscillationMagnitude = 40;
+    oscillationXFrequency = 0.5;
+    oscillationYFrequency = 0.3;
+    timeScale = 0.9; // oscillation time units per second
+    mouseForce = 1500; // how much the blob is affected by the mouse movement
+    mouseSmoothing = 0.03; // per-60fps-frame rate at which mouseX/mouseY track the mouse
+    blobPosLerp = 0.05; // per-60fps-frame rate at which blob position approaches target
 
     constructor() {
       this.blobs = document.querySelectorAll<HTMLElement>('.blob');
-      this.mouseX = 0;
-      this.mouseY = 0;
-      this.targetX = 0;
-      this.targetY = 0;
       this.blobPositions = Array.from(this.blobs).map(() => ({ x: 0, y: 0 }));
       this.blobScales = Array.from(this.blobs).map(() => 0);
       this.blobOpacities = Array.from(this.blobs).map(() => 0);
-      this.time = 0;
-      this.animationStartTime = Date.now();
       this.isMobile = this.detectMobile();
-      this.fadeInComplete = false;
-      this.rafId = null;
-      
-      /* Blob animation parameters */
-      this.blobAnimationDuration = 2000;
-      this.blobAnimationDelay = 200; // delay between each blob
-      this.maxScale = 1; // max scale of the blob
-      this.maxOpacity = 0.6; // max opacity of the blob
-      this.oscillationMagnitude = 40;
-      this.oscillationXFrequency = 0.5;
-      this.oscillationYFrequency = 0.3;
-      this.mouseForce = 1500; // how much the blob is affected by the mouse movement
-      this.mouseSmoothing = 0.03; // how quickly mouseX and mouseY tracks the mouse position
-      this.blobPosLerp = 0.05; // how quickly position of blob approaches target position
-      
+
       // Pre-cache blob speeds and frequencies to avoid parsing every frame
-      this.blobSpeeds = Array.from(this.blobs).map(blob => 
+      this.blobSpeeds = Array.from(this.blobs).map(blob =>
         parseFloat(blob.dataset.speed || '0.02')
       );
-      this.blobXFrequencies = Array.from(this.blobs).map((_, index) => 
+      this.blobXFrequencies = Array.from(this.blobs).map((_, index) =>
         this.oscillationXFrequency + index * 0.2
       );
-      this.blobYFrequencies = Array.from(this.blobs).map((_, index) => 
+      this.blobYFrequencies = Array.from(this.blobs).map((_, index) =>
         this.oscillationYFrequency + index * 0.15
       );
-      
+
       this.init();
     }
 
     detectMobile(): boolean {
-      return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
-             window.innerWidth <= 768 || 
-             ('ontouchstart' in window);
+      return window.matchMedia('(pointer: coarse)').matches ||
+             window.innerWidth <= 768;
     }
 
     init() {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        this.blobs.forEach(blob => {
+          blob.style.opacity = String(this.maxOpacity);
+          blob.style.transform = `translate3d(-50%, -50%, 0) scale(${this.maxScale})`;
+        });
+        return;
+      }
+
       // Only add mouse interaction on non-mobile devices
       if (!this.isMobile) {
         // Maps screen coordinates to [-1, 1] range
@@ -105,48 +85,61 @@
         });
       }
 
-      this.animate();
+      requestAnimationFrame(this.animate);
     }
 
-    animate() {
-      this.time += 0.015; // for autonomous movement
-      
+    animate = (now: number) => {
+      if (this.lastFrameTime === null) {
+        this.lastFrameTime = now;
+        this.fadeStartTime = now;
+      }
+      // Cap delta so the animation doesn't jump after a background-tab pause
+      const dt = Math.min((now - this.lastFrameTime) / 1000, 0.1);
+      this.lastFrameTime = now;
+      this.time += dt * this.timeScale; // for autonomous movement
+
+      // Convert per-frame lerp rates to frame-rate-independent factors
+      const frames = dt * 60;
+      const mouseK = 1 - Math.pow(1 - this.mouseSmoothing, frames);
+      const posK = 1 - Math.pow(1 - this.blobPosLerp, frames);
+
       // Handle fade-in animation (only calculate if not complete)
-      if (!this.fadeInComplete) {
-        const elapsed = Date.now() - this.animationStartTime;
+      const fading = !this.fadeInComplete;
+      if (fading) {
+        const elapsed = now - this.fadeStartTime;
         let allComplete = true;
-        
+
         for (let index = 0; index < this.blobs.length; index++) {
           const animationStart = index * this.blobAnimationDelay;
-          
+
           if (elapsed >= animationStart) {
             const progress = Math.min((elapsed - animationStart) / this.blobAnimationDuration, 1);
             const easeOut = 1 - Math.pow(1 - progress, 3);
-            
+
             this.blobScales[index] = easeOut * this.maxScale;
             this.blobOpacities[index] = easeOut * this.maxOpacity;
-            
+
             if (progress < 1) allComplete = false;
           } else {
             allComplete = false;
           }
         }
-        
+
         this.fadeInComplete = allComplete;
       }
-      
+
       // Mouse smoothing (outside loop for non-mobile)
       if (!this.isMobile) {
-        this.mouseX += (this.targetX - this.mouseX) * this.mouseSmoothing;
-        this.mouseY += (this.targetY - this.mouseY) * this.mouseSmoothing;
+        this.mouseX += (this.targetX - this.mouseX) * mouseK;
+        this.mouseY += (this.targetY - this.mouseY) * mouseK;
       }
-      
+
       // Update blob positions and transformations
       for (let index = 0; index < this.blobs.length; index++) {
         const blob = this.blobs[index];
         const speed = this.blobSpeeds[index];
         const pos = this.blobPositions[index];
-        
+
         // Add autonomous movement with different frequencies for each blob
         const autoX = Math.sin(this.time * this.blobXFrequencies[index]) * this.oscillationMagnitude;
         const autoY = Math.cos(this.time * this.blobYFrequencies[index]) * this.oscillationMagnitude;
@@ -159,33 +152,24 @@
           targetX = (-this.mouseX * this.mouseForce * speed) + autoX;
           targetY = (-this.mouseY * this.mouseForce * speed) + autoY;
         }
-        
-        pos.x += (targetX - pos.x) * this.blobPosLerp;
-        pos.y += (targetY - pos.y) * this.blobPosLerp;
-        
+
+        pos.x += (targetX - pos.x) * posK;
+        pos.y += (targetY - pos.y) * posK;
+
         // Apply all transformations - using translate3d for GPU acceleration
         blob.style.transform = `translate3d(calc(-50% + ${pos.x}px), calc(-50% + ${pos.y}px), 0) scale(${this.blobScales[index]})`;
-        blob.style.opacity = String(this.blobOpacities[index]);
+        // Opacity only changes during the fade-in
+        if (fading) blob.style.opacity = String(this.blobOpacities[index]);
       }
 
-      this.rafId = requestAnimationFrame(() => this.animate());
-    }
-    
-    destroy() {
-      if (this.rafId) {
-        cancelAnimationFrame(this.rafId);
-      }
+      requestAnimationFrame(this.animate);
     }
   }
 
-  let blobInstance: BlobBackground | null = null;
-
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      blobInstance = new BlobBackground();
-    });
+    document.addEventListener('DOMContentLoaded', () => new BlobBackground());
   } else {
-    blobInstance = new BlobBackground();
+    new BlobBackground();
   }
 </script>
 
@@ -201,104 +185,33 @@
     pointer-events: none;
   }
 
-  .blob-svg {
-    position: absolute;
-    width: 0;
-    height: 0;
-  }
-
   .blob {
     position: absolute;
+    top: 50%;
+    left: 70%;
+    width: var(--size);
+    height: var(--size);
     border-radius: 50%;
-    filter: url(#goo) blur(40px);
+    /* Hold the color to 55% then fade, approximating the old goo filter's
+       alpha threshold (which made the core near-solid) without an SVG filter */
+    background: radial-gradient(circle, var(--color) 0%, var(--color) 50%, transparent 65%);
+    filter: blur(40px);
     opacity: 0;
-    transform: scale(0);
+    transform: translate(-50%, -50%) scale(0);
     will-change: transform, opacity;
   }
 
-  .blob-1 {
-    width: 500px;
-    height: 500px;
-    background: radial-gradient(circle, rgba(99, 102, 241, 0.8), transparent);
-    top: 50%;
-    left: 70%;
-    transform: translate(-50%, -50%);
-  }
-
-  .blob-2 {
-    width: 450px;
-    height: 450px;
-    background: radial-gradient(circle, rgba(168, 85, 247, 0.7), transparent);
-    top: 50%;
-    left: 70%;
-    transform: translate(-50%, -50%);
-  }
-
-  .blob-3 {
-    width: 400px;
-    height: 400px;
-    background: radial-gradient(circle, rgba(236, 72, 153, 0.6), transparent);
-    top: 50%;
-    left: 70%;
-    transform: translate(-50%, -50%);
-  }
-
-  .blob-4 {
-    width: 350px;
-    height: 350px;
-    background: radial-gradient(circle, rgba(59, 130, 246, 0.7), transparent);
-    top: 50%;
-    left: 70%;
-    transform: translate(-50%, -50%);
-  }
-
-  .blob-5 {
-    width: 380px;
-    height: 380px;
-    background: radial-gradient(circle, rgba(20, 184, 166, 0.65), transparent);
-    top: 50%;
-    left: 70%;
-    transform: translate(-50%, -50%);
-  }
-
-  .blob-6 {
-    width: 320px;
-    height: 320px;
-    background: radial-gradient(circle, rgba(251, 146, 60, 0.6), transparent);
-    top: 50%;
-    left: 70%;
-    transform: translate(-50%, -50%);
-  }
+  .blob-1 { --size: 500px; --color: rgb(99, 102, 241); }
+  .blob-2 { --size: 450px; --color: rgb(168, 85, 247); }
+  .blob-3 { --size: 400px; --color: rgb(236, 72, 153); }
+  .blob-4 { --size: 350px; --color: rgb(59, 130, 246); }
+  .blob-5 { --size: 380px; --color: rgb(20, 184, 166); }
+  .blob-6 { --size: 320px; --color: rgb(251, 146, 60); }
 
   @media (max-width: 768px) {
-    .blob-1 {
-      width: 300px;
-      height: 300px;
-    }
-
-    .blob-2 {
-      width: 270px;
-      height: 270px;
-    }
-
-    .blob-3 {
-      width: 240px;
-      height: 240px;
-    }
-
-    .blob-4 {
-      width: 210px;
-      height: 210px;
-    }
-
-    .blob-5 {
-      width: 230px;
-      height: 230px;
-    }
-
-    .blob-6 {
-      width: 190px;
-      height: 190px;
+    .blob {
+      width: calc(var(--size) * 0.6);
+      height: calc(var(--size) * 0.6);
     }
   }
 </style>
