@@ -1,0 +1,644 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import { t } from '@/utils/i18n';
+import { tagColor } from '@/utils/projectTags';
+
+interface Props {
+  frontmatter: {
+    title: string;
+    description?: string;
+    lang: 'en' | 'ja';
+    tags?: string[];
+  };
+}
+
+const { frontmatter } = Astro.props;
+const locale = frontmatter.lang;
+const tags = frontmatter.tags ?? [];
+---
+
+<BaseLayout title={frontmatter.title} description={frontmatter.description ?? ''} ogType="article">
+  <article class="post-article">
+    <header class="post-header">
+      <a href={`/${locale}/projects/`} class="back-link">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        {t(locale, 'common.back')}
+      </a>
+      <h1 class="post-title animate-fadeInUp">{frontmatter.title}</h1>
+      {tags.length > 0 && (
+        <div class="project-tags animate-fadeInUp" style="animation-delay: 0.1s;">
+          {tags.map((tag) => {
+            const color = tagColor(tag);
+            return (
+              <span
+                class="project-tag"
+                style={`--chip-dark: ${color.dark}; --chip-light: ${color.light};`}
+              >
+                {tag}
+              </span>
+            );
+          })}
+        </div>
+      )}
+    </header>
+    <div class="post-divider animate-fadeInUp" style="animation-delay: 0.2s;"></div>
+    <div class="post-content animate-fadeInUp" style="animation-delay: 0.3s;">
+      <slot />
+    </div>
+  </article>
+
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Media viewer" hidden>
+    <button class="lightbox-close" aria-label="Close" type="button">
+      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    </button>
+    <div class="lightbox-content"></div>
+    <p class="lightbox-caption" hidden></p>
+  </div>
+</BaseLayout>
+
+<script>
+  const lightbox = document.getElementById('lightbox')!;
+  const content = lightbox.querySelector('.lightbox-content')!;
+  const captionEl = lightbox.querySelector('.lightbox-caption') as HTMLElement;
+  const closeBtn = lightbox.querySelector('.lightbox-close') as HTMLButtonElement;
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let lastFocused: HTMLElement | null = null;
+  let sourceEl: HTMLElement | null = null;
+  let closing = false;
+
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+  // Transform that moves `final` onto `from` (FLIP: play it, then release to none).
+  function deltaTransform(from: DOMRect, final: DOMRect) {
+    const dx = from.left + from.width / 2 - (final.left + final.width / 2);
+    const dy = from.top + from.height / 2 - (final.top + final.height / 2);
+    return `translate(${dx}px, ${dy}px) scale(${from.width / final.width})`;
+  }
+
+  function sourceRect(): DOMRect | null {
+    if (!sourceEl || !document.contains(sourceEl)) return null;
+    const r = sourceEl.getBoundingClientRect();
+    // Only fly to/from the thumbnail if it's actually in view.
+    if (!r.width || !r.height || r.bottom < 0 || r.top > window.innerHeight) return null;
+    return r;
+  }
+
+  async function openLightbox(node: HTMLElement, caption: string, source: HTMLElement | null) {
+    lastFocused = document.activeElement as HTMLElement;
+    sourceEl = source;
+    content.replaceChildren(node);
+    captionEl.textContent = caption;
+    captionEl.hidden = !caption;
+    lightbox.hidden = false;
+    document.body.style.overflow = 'hidden';
+    closeBtn.focus();
+    // Forced reflow (not rAF, which stalls in background tabs) so the
+    // opacity transition reliably starts from the hidden state.
+    void lightbox.getBoundingClientRect();
+    lightbox.classList.add('is-open');
+
+    if (reducedMotion) return;
+    if (node instanceof HTMLImageElement) {
+      try { await node.decode(); } catch { /* still animates, may pop in */ }
+    }
+    const final = node.getBoundingClientRect();
+    if (!final.width || !final.height) return;
+    const from = sourceRect();
+    node.style.transition = 'none';
+    node.style.transform = from ? deltaTransform(from, final) : 'scale(0.9)';
+    if (!from) node.style.opacity = '0';
+    void node.getBoundingClientRect(); // flush so the transition starts from `from`
+    node.style.transition = 'transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.32s ease';
+    node.style.transform = '';
+    node.style.opacity = '';
+    await sleep(340);
+    node.style.transition = ''; // hand transform back to the zoom styles
+  }
+
+  async function closeLightbox() {
+    if (closing || lightbox.hidden) return;
+    closing = true;
+    lightbox.classList.remove('is-open');
+    const node = content.firstElementChild as HTMLElement | null;
+    if (!reducedMotion && node) {
+      const from = sourceRect();
+      const zoomed = node.classList.contains('zoomed');
+      node.style.transition = 'transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s ease';
+      if (from && !zoomed) {
+        node.style.transform = deltaTransform(from, node.getBoundingClientRect());
+        node.style.opacity = '0';
+      } else {
+        node.style.transform = zoomed ? '' : 'scale(0.92)';
+        node.style.opacity = '0';
+      }
+      await sleep(280);
+    }
+    lightbox.hidden = true;
+    content.replaceChildren();
+    document.body.style.overflow = '';
+    closing = false;
+    lastFocused?.focus();
+  }
+
+  closeBtn.addEventListener('click', closeLightbox);
+  lightbox.addEventListener('click', (e) => {
+    if (e.target === lightbox || e.target === content) closeLightbox();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !lightbox.hidden) closeLightbox();
+  });
+
+  function openImage(src: string, alt: string, caption: string, source: HTMLElement | null) {
+    const img = document.createElement('img');
+    img.src = src;
+    img.alt = alt;
+    img.className = 'lightbox-img';
+    let zoomed = false;
+    const setOrigin = (p: { clientX: number; clientY: number }) => {
+      const r = img.getBoundingClientRect();
+      img.style.transformOrigin =
+        `${((p.clientX - r.left) / r.width) * 100}% ${((p.clientY - r.top) / r.height) * 100}%`;
+    };
+    img.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setOrigin(e);
+      zoomed = !zoomed;
+      img.classList.toggle('zoomed', zoomed);
+    });
+    // While zoomed, the view pans by following the cursor / finger.
+    img.addEventListener('mousemove', (e) => { if (zoomed) setOrigin(e); });
+    img.addEventListener('touchmove', (e) => {
+      if (zoomed && e.touches[0]) { setOrigin(e.touches[0]); e.preventDefault(); }
+    }, { passive: false });
+    openLightbox(img, caption, source);
+  }
+
+  function openVideo(srcVideo: HTMLVideoElement) {
+    const v = srcVideo.cloneNode(true) as HTMLVideoElement;
+    v.removeAttribute('class');
+    v.className = 'lightbox-video';
+    v.controls = true;
+    v.muted = true;
+    v.autoplay = true;
+    v.loop = true;
+    openLightbox(v, '', srcVideo);
+    v.play().catch(() => {});
+  }
+
+  // Wrap each media element so the hover zoom cue can be positioned over it.
+  function wrap(el: HTMLElement, onActivate: () => void) {
+    const wrapper = document.createElement('span');
+    wrapper.className = 'lb-wrap';
+    wrapper.setAttribute('role', 'button');
+    wrapper.setAttribute('tabindex', '0');
+    wrapper.setAttribute('aria-label', 'Expand media');
+    el.replaceWith(wrapper);
+    wrapper.appendChild(el);
+    const icon = document.createElement('span');
+    icon.className = 'lb-icon';
+    icon.innerHTML =
+      '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35M11 8v6M8 11h6"/></svg>';
+    wrapper.appendChild(icon);
+    wrapper.addEventListener('click', (e) => { e.preventDefault(); onActivate(); });
+    wrapper.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onActivate(); }
+    });
+  }
+
+  document
+    .querySelectorAll<HTMLImageElement>('.post-content .project-shots img, .post-content img.project-hero')
+    .forEach((img) => {
+      const caption = img.closest('figure')?.querySelector('figcaption')?.textContent?.trim() ?? '';
+      wrap(img, () => openImage(img.currentSrc || img.src, img.alt, caption, img));
+    });
+
+  document
+    .querySelectorAll<HTMLVideoElement>('.post-content video.project-video')
+    .forEach((video) => {
+      wrap(video, () => openVideo(video));
+    });
+</script>
+
+<style is:global>
+  /* Lightbox + zoom-cue styles are global: these elements are created by the
+     script above, so Astro's scoped-style attributes never reach them. */
+  .lb-wrap {
+    position: relative;
+    display: block;
+    cursor: zoom-in;
+    width: fit-content;
+    margin: 0 auto;
+  }
+
+  .project-shots .lb-wrap {
+    width: 100%;
+    margin: 0;
+  }
+
+  .lb-icon {
+    position: absolute;
+    right: 0.625rem;
+    bottom: 0.625rem;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+  }
+
+  .lb-wrap:hover .lb-icon,
+  .lb-wrap:focus-visible .lb-icon {
+    opacity: 1;
+  }
+
+  @media (hover: none) {
+    .lb-icon {
+      opacity: 0.75;
+    }
+  }
+
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(8, 8, 12, 0.88);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    padding: 2.5rem 1rem 1.5rem;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .lightbox.is-open {
+    opacity: 1;
+  }
+
+  .lightbox[hidden] {
+    display: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lightbox {
+      transition: none;
+      opacity: 1;
+    }
+  }
+
+  .lightbox-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+  }
+
+  .lightbox-img {
+    max-width: min(92vw, 1400px);
+    max-height: 86vh;
+    border-radius: 8px;
+    cursor: zoom-in;
+    transition: transform 0.25s ease;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  .lightbox-img.zoomed {
+    transform: scale(2.2);
+    cursor: zoom-out;
+  }
+
+  .lightbox-video {
+    max-width: 92vw;
+    max-height: 86vh;
+    border-radius: 12px;
+  }
+
+  .lightbox-caption {
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 0.8125rem;
+    margin: 0.875rem 0 0;
+    flex-shrink: 0;
+  }
+
+  .lightbox-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.4);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+
+  .lightbox-close:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+</style>
+
+<style>
+  .post-article {
+    max-width: 85ch;
+    margin: 0 auto;
+    padding: 0;
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    font-size: 0.875rem;
+    transition: color 0.2s ease;
+  }
+
+  .back-link:hover {
+    color: var(--color-primary);
+  }
+
+  .back-link svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .post-title {
+    font-size: 2.5rem;
+    margin-top: 0.83em;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+    color: var(--color-text);
+  }
+
+  .project-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .project-tag {
+    --chip: var(--chip-dark);
+    display: inline-flex;
+    align-items: center;
+    padding: 0.1875rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    color: var(--chip);
+    background-color: color-mix(in srgb, var(--chip) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--chip) 35%, transparent);
+  }
+
+  :global([data-theme="light"]) .project-tag {
+    --chip: var(--chip-light);
+    background-color: color-mix(in srgb, var(--chip) 10%, transparent);
+    border-color: color-mix(in srgb, var(--chip) 40%, transparent);
+  }
+
+  .post-divider {
+    height: 1px;
+    background-color: var(--color-text-muted);
+    margin: 2rem 0;
+  }
+
+  .post-content {
+    line-height: 1.8;
+    color: var(--color-text);
+    padding-bottom: 4rem;
+  }
+
+  .post-content :global(h1),
+  .post-content :global(h2),
+  .post-content :global(h3),
+  .post-content :global(h4) {
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    color: var(--color-text);
+  }
+
+  .post-content :global(h2) {
+    font-size: 1.75rem;
+  }
+
+  .post-content :global(h3) {
+    font-size: 1.5rem;
+  }
+
+  .post-content :global(p) {
+    margin-bottom: 1.5rem;
+    color: var(--color-text);
+  }
+
+  .post-content :global(a) {
+    color: var(--color-primary);
+    text-decoration: underline;
+  }
+
+  .post-content :global(code) {
+    background-color: rgba(0, 255, 153, 0.1);
+    padding: 0.2em 0.4em;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+
+  .post-content :global(ul),
+  .post-content :global(ol) {
+    margin-bottom: 1.5rem;
+    padding-left: 2rem;
+  }
+
+  .post-content :global(li) {
+    margin-bottom: 0.5rem;
+  }
+
+  /* Live-demo call-to-action button */
+  .post-content :global(.project-cta-row) {
+    margin: 0.5rem 0 1.5rem;
+  }
+
+  .post-content :global(a.project-cta) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.5rem;
+    border-radius: 999px;
+    background-color: color-mix(in srgb, var(--color-primary) 12%, transparent);
+    border: 1.5px solid var(--color-primary);
+    color: var(--color-primary);
+    font-weight: 700;
+    font-size: 1rem;
+    text-decoration: none;
+    transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .post-content :global(a.project-cta:hover) {
+    background-color: color-mix(in srgb, var(--color-primary) 22%, transparent);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px color-mix(in srgb, var(--color-primary) 25%, transparent);
+  }
+
+  /* Collapsible technical notes */
+  .post-content :global(details.dev-notes) {
+    margin: 2.5rem 0 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  :global([data-theme="light"]) .post-content :global(details.dev-notes) {
+    border-color: rgba(0, 0, 0, 0.2);
+  }
+
+  .post-content :global(details.dev-notes summary) {
+    cursor: pointer;
+    padding: 1rem 1.25rem;
+    font-weight: 700;
+    color: var(--color-text);
+    background-color: rgba(255, 255, 255, 0.03);
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    user-select: none;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  :global([data-theme="light"]) .post-content :global(details.dev-notes summary) {
+    background-color: rgba(0, 0, 0, 0.03);
+  }
+
+  .post-content :global(details.dev-notes summary::-webkit-details-marker) {
+    display: none;
+  }
+
+  .post-content :global(details.dev-notes summary::before) {
+    content: '';
+    flex-shrink: 0;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-right: 2px solid var(--color-primary);
+    border-bottom: 2px solid var(--color-primary);
+    transform: rotate(-45deg);
+    transition: transform 0.2s ease;
+  }
+
+  .post-content :global(details.dev-notes[open] summary::before) {
+    transform: rotate(45deg);
+  }
+
+  .post-content :global(details.dev-notes summary:hover) {
+    color: var(--color-primary);
+  }
+
+  .post-content :global(details.dev-notes > *:not(summary)) {
+    margin-left: 1.25rem;
+    margin-right: 1.25rem;
+  }
+
+  .post-content :global(details.dev-notes > h3:first-of-type) {
+    margin-top: 1.25rem;
+  }
+
+  .post-content :global(details.dev-notes h3) {
+    font-size: 1.125rem;
+  }
+
+  .post-content :global(details.dev-notes > *:last-child) {
+    margin-bottom: 1.25rem;
+  }
+
+  /* Full-width hero image at the top of the project body */
+  .post-content :global(img.project-hero) {
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  :global([data-theme="light"]) .post-content :global(img.project-hero) {
+    border-color: rgba(0, 0, 0, 0.15);
+  }
+
+  /* Phone screenshot gallery */
+  .post-content :global(.project-shots) {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  @media (min-width: 640px) {
+    .post-content :global(.project-shots) {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  .post-content :global(.project-shots figure) {
+    margin: 0;
+  }
+
+  .post-content :global(.project-shots img) {
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: block;
+  }
+
+  :global([data-theme="light"]) .post-content :global(.project-shots img) {
+    border-color: rgba(0, 0, 0, 0.15);
+  }
+
+  .post-content :global(.project-shots figcaption) {
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    margin-top: 0.5rem;
+  }
+
+  /* Walkthrough video: phone aspect, centered */
+  .post-content :global(.project-video) {
+    display: block;
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto 1.5rem;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  :global([data-theme="light"]) .post-content :global(.project-video) {
+    border-color: rgba(0, 0, 0, 0.15);
+  }
+
+  @media (min-width: 768px) {
+    .post-title {
+      font-size: 3rem;
+    }
+
+    .post-content {
+      font-size: 1.125rem;
+    }
+  }
+</style>

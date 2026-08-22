@@ -22,6 +22,8 @@ const projects = defineCollection({
     lang: z.enum(['en', 'ja']).default('en'),
     order: z.number().optional(),
     inProgress: z.boolean().optional(),
+    /** Stack / concept chips shown on the project card (see utils/projectTags.ts for colors). */
+    tags: z.array(z.string()).default([]),
   }),
 });
 

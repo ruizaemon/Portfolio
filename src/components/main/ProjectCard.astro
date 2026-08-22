@@ -1,13 +1,16 @@
 ---
+import { tagColor } from '../../utils/projectTags';
+
 interface Props {
   title: string;
   image: string;
   url?: string;
   animationDelay?: number;
   inProgress?: boolean;
+  tags?: string[];
 }
 
-const { title, image, url, animationDelay = 0, inProgress = false } = Astro.props;
+const { title, image, url, animationDelay = 0, inProgress = false, tags = [] } = Astro.props;
 
 const Tag = url ? 'a' : 'div';
 ---
@@ -24,6 +27,21 @@ const Tag = url ? 'a' : 'div';
   </div>
   <div class="project-card-content">
     <h3 class="project-card-title">{title}</h3>
+    {tags.length > 0 && (
+      <div class="project-card-tags">
+        {tags.map((tag) => {
+          const color = tagColor(tag);
+          return (
+            <span
+              class="project-card-tag"
+              style={`--chip-dark: ${color.dark}; --chip-light: ${color.light};`}
+            >
+              {tag}
+            </span>
+          );
+        })}
+      </div>
+    )}
   </div>
 </Tag>
 
@@ -179,6 +197,34 @@ const Tag = url ? 'a' : 'div';
     color: var(--color-text);
     transition: color 0.3s ease;
     font-size: 1.125rem;
+  }
+
+  .project-card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+    margin-top: 0.75rem;
+  }
+
+  .project-card-tag {
+    --chip: var(--chip-dark);
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.625rem;
+    border-radius: 999px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    color: var(--chip);
+    background-color: color-mix(in srgb, var(--chip) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--chip) 35%, transparent);
+  }
+
+  :global([data-theme="light"]) .project-card-tag {
+    --chip: var(--chip-light);
+    background-color: color-mix(in srgb, var(--chip) 10%, transparent);
+    border-color: color-mix(in srgb, var(--chip) 40%, transparent);
   }
 
   .project-card:hover .project-card-title {

@@ -1,0 +1,32 @@
+---
+import { getCollection, render } from 'astro:content';
+import { languages } from '@/utils/languages';
+import ProjectPostLayout from '@/layouts/ProjectPostLayout.astro';
+
+export async function getStaticPaths() {
+  const projects = await getCollection('projects');
+  const paths: Array<{ params: { lang: string; slug: string }; props: { project: any } }> = [];
+
+  languages.forEach((lang) => {
+    projects
+      .filter((project) => project.data.lang === lang.code)
+      .forEach((project) => {
+        // Extract just the filename from the full id (e.g., "en/mira" -> "mira")
+        const filename = project.id.split('/').pop() as string;
+        paths.push({
+          params: { lang: lang.code, slug: filename },
+          props: { project },
+        });
+      });
+  });
+
+  return paths;
+}
+
+const { project } = Astro.props;
+const { Content } = await render(project);
+---
+
+<ProjectPostLayout frontmatter={project.data}>
+  <Content />
+</ProjectPostLayout>

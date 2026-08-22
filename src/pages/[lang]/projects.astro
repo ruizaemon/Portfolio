@@ -36,6 +36,7 @@ const projects = allProjects
             url={project.data.inProgress ? undefined : `/${locale}/projects/${filename}`}
             animationDelay={(index + 1) * 0.1}
             inProgress={project.data.inProgress}
+            tags={project.data.tags}
           />
         );
       })}
