@@ -93,6 +93,14 @@ body.hero-page header {
 body.hero-page main.main-container {
   padding-top: 0;
 }
+/* On narrow or short viewports the hero content can be taller than the
+   viewport, so a floating header would overlap it — keep the header in
+   normal flow there and center the hero in the space below it instead */
+@media (max-width: 767px), (max-height: 700px) {
+  body.hero-page header {
+    position: static;
+  }
+}
 
 a {
   color: var(--color-text-muted);

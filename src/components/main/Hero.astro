@@ -28,6 +28,13 @@ const locale = Astro.currentLocale || 'en';
     /* Lift slightly above geometric center — optical center reads higher */
     transform: translateY(-4vh);
   }
+  /* Same breakpoints as the hero-page header fallback in global.css: when the
+     header is in normal flow, the lift could push the hero into it — skip it */
+  @media (max-width: 767px), (max-height: 700px) {
+    .hero-container {
+      transform: none;
+    }
+  }
   .hero-title {
     font-size: 3rem;
     margin-bottom: 0.5rem;
