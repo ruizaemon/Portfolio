@@ -1,0 +1,168 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import { t } from '@/utils/i18n';
+import { tagColor } from '@/utils/projectTags';
+
+interface Props {
+  frontmatter: {
+    title: string;
+    description: string;
+    lang: 'en' | 'ja';
+    tags?: string[];
+  };
+}
+
+const { frontmatter } = Astro.props;
+const locale = frontmatter.lang;
+const tags = frontmatter.tags ?? [];
+---
+
+<BaseLayout title={frontmatter.title} description={frontmatter.description} wide>
+  <article class="tool-article">
+    <header class="tool-header">
+      <a href={`/${locale}/projects/`} class="back-link">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        {t(locale, 'common.back')}
+      </a>
+      <h1 class="tool-title animate-fadeInUp">{frontmatter.title}</h1>
+      <p class="tool-description animate-fadeInUp" style="animation-delay: 0.05s;">{frontmatter.description}</p>
+      {tags.length > 0 && (
+        <div class="tool-tags animate-fadeInUp" style="animation-delay: 0.1s;">
+          {tags.map((tag) => {
+            const color = tagColor(tag);
+            return (
+              <span
+                class="tool-tag"
+                style={`--chip-dark: ${color.dark}; --chip-light: ${color.light};`}
+              >
+                {tag}
+              </span>
+            );
+          })}
+        </div>
+      )}
+    </header>
+
+    <div class="tool-app animate-fadeInUp" style="animation-delay: 0.2s;">
+      <slot name="tool" />
+    </div>
+
+    <div class="tool-content animate-fadeInUp" style="animation-delay: 0.3s;">
+      <slot />
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .tool-article {
+    width: 100%;
+    margin: 0 auto;
+    padding-bottom: 4rem;
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    font-size: 0.875rem;
+    transition: color 0.2s ease;
+  }
+
+  .back-link:hover {
+    color: var(--color-primary);
+  }
+
+  .tool-title {
+    font-size: 2.5rem;
+    margin-top: 0.83em;
+    margin-bottom: 0.75rem;
+    line-height: 1.2;
+    color: var(--color-text);
+  }
+
+  .tool-description {
+    margin: 0 0 1rem;
+    color: var(--color-text-muted);
+    line-height: 1.7;
+  }
+
+  .tool-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .tool-tag {
+    --chip: var(--chip-dark);
+    display: inline-flex;
+    align-items: center;
+    padding: 0.1875rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    color: var(--chip);
+    background-color: color-mix(in srgb, var(--chip) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--chip) 35%, transparent);
+  }
+
+  :global([data-theme="light"]) .tool-tag {
+    --chip: var(--chip-light);
+    background-color: color-mix(in srgb, var(--chip) 10%, transparent);
+    border-color: color-mix(in srgb, var(--chip) 40%, transparent);
+  }
+
+  .tool-app {
+    margin: 2rem 0;
+  }
+
+  /* Write-up below the tool: keep a readable line length */
+  .tool-content {
+    max-width: 85ch;
+    line-height: 1.8;
+    color: var(--color-text);
+  }
+
+  .tool-content :global(h2) {
+    font-size: 1.5rem;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+  }
+
+  .tool-content :global(h3) {
+    font-size: 1.25rem;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .tool-content :global(p) {
+    margin-bottom: 1.5rem;
+  }
+
+  .tool-content :global(a) {
+    color: var(--color-primary);
+    text-decoration: underline;
+  }
+
+  .tool-content :global(code) {
+    background-color: rgba(0, 255, 153, 0.1);
+    padding: 0.2em 0.4em;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+
+  .tool-content :global(ul),
+  .tool-content :global(ol) {
+    margin-bottom: 1.5rem;
+    padding-left: 2rem;
+  }
+
+  .tool-content :global(li) {
+    margin-bottom: 0.5rem;
+  }
+</style>

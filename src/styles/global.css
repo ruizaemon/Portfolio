@@ -78,6 +78,10 @@ body {
   display: flex;
   flex-direction: column;
 }
+/* Wide pages (interactive tools) need room for controls + diagram side by side */
+body.wide-page {
+  max-width: 160ch;
+}
 /* Hero pages: overlay the header on top of the content so <main>
    spans the full viewport and its content centers on the screen */
 body.hero-page {

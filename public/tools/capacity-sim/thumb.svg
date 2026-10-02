@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" font-family="monospace">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#8B5CF6" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#8B5CF6" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="320" height="180" fill="#1C1C22"/>
+  <rect width="320" height="180" fill="url(#glow)"/>
+
+  <!-- edges -->
+  <g stroke="#ffffff" stroke-opacity="0.25" stroke-width="1.2" fill="none">
+    <path d="M58 90 H92"/>
+    <path d="M128 90 L156 52 M128 90 H156 M128 90 L156 128"/>
+    <path d="M196 52 L226 72 M196 90 H226 M196 128 L226 108"/>
+    <path d="M262 90 H276"/>
+  </g>
+
+  <!-- request dots -->
+  <g fill="#00FF99">
+    <circle cx="70" cy="90" r="2"/><circle cx="84" cy="90" r="2"/>
+    <circle cx="142" cy="71" r="2"/><circle cx="144" cy="90" r="2"/><circle cx="142" cy="109" r="2"/>
+  </g>
+  <g fill="#06B6D4"><circle cx="210" cy="62" r="2"/><circle cx="212" cy="90" r="2"/></g>
+  <circle cx="211" cy="118" r="2" fill="#f369ae"/>
+
+  <!-- clients -->
+  <g transform="translate(22 72)">
+    <rect width="36" height="36" rx="6" fill="#ffffff" fill-opacity="0.04" stroke="#ffffff" stroke-opacity="0.4"/>
+    <circle cx="18" cy="14" r="5" fill="none" stroke="#ffffff" stroke-opacity="0.7"/>
+    <path d="M9 29 a9 7 0 0 1 18 0" fill="none" stroke="#ffffff" stroke-opacity="0.7"/>
+  </g>
+
+  <!-- load balancer -->
+  <g transform="translate(92 74)">
+    <rect width="36" height="32" rx="6" fill="#8B5CF6" fill-opacity="0.12" stroke="#8B5CF6"/>
+    <text x="18" y="20" font-size="9" fill="#c4b5fd" text-anchor="middle">LB</text>
+  </g>
+
+  <!-- app servers with utilization bars -->
+  <g font-size="0" stroke="#00FF99">
+    <g transform="translate(156 38)">
+      <rect width="40" height="28" rx="5" fill="#00FF99" fill-opacity="0.08"/>
+      <rect x="6" y="18" width="28" height="4" rx="2" fill="#ffffff" fill-opacity="0.1" stroke="none"/>
+      <rect x="6" y="18" width="12" height="4" rx="2" fill="#00FF99" stroke="none"/>
+      <rect x="6" y="7" width="28" height="3" rx="1.5" fill="#ffffff" fill-opacity="0.25" stroke="none"/>
+    </g>
+    <g transform="translate(156 76)">
+      <rect width="40" height="28" rx="5" fill="#00FF99" fill-opacity="0.08"/>
+      <rect x="6" y="18" width="28" height="4" rx="2" fill="#ffffff" fill-opacity="0.1" stroke="none"/>
+      <rect x="6" y="18" width="19" height="4" rx="2" fill="#ffb454" stroke="none"/>
+      <rect x="6" y="7" width="28" height="3" rx="1.5" fill="#ffffff" fill-opacity="0.25" stroke="none"/>
+    </g>
+    <g transform="translate(156 114)">
+      <rect width="40" height="28" rx="5" fill="#00FF99" fill-opacity="0.08"/>
+      <rect x="6" y="18" width="28" height="4" rx="2" fill="#ffffff" fill-opacity="0.1" stroke="none"/>
+      <rect x="6" y="18" width="14" height="4" rx="2" fill="#00FF99" stroke="none"/>
+      <rect x="6" y="7" width="28" height="3" rx="1.5" fill="#ffffff" fill-opacity="0.25" stroke="none"/>
+    </g>
+  </g>
+
+  <!-- cache -->
+  <g transform="translate(226 74)">
+    <rect width="36" height="32" rx="6" fill="#06B6D4" fill-opacity="0.12" stroke="#06B6D4"/>
+    <text x="18" y="20" font-size="7" fill="#67e8f9" text-anchor="middle">cache</text>
+  </g>
+
+  <!-- database (bottleneck) -->
+  <g transform="translate(276 70)">
+    <ellipse cx="18" cy="6" rx="16" ry="5" fill="#f369ae" fill-opacity="0.15" stroke="#f369ae"/>
+    <path d="M2 6 V34 a16 5 0 0 0 32 0 V6" fill="#f369ae" fill-opacity="0.1" stroke="#f369ae"/>
+    <path d="M2 20 a16 5 0 0 0 32 0" fill="none" stroke="#f369ae" stroke-opacity="0.6"/>
+  </g>
+  <text x="294" y="124" font-size="6.5" fill="#f369ae" text-anchor="middle">94%</text>
+</svg>

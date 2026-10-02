@@ -15,6 +15,8 @@ export const PROJECT_TAG_COLORS: Record<string, TagColor> = {
   'Full-stack': { dark: '#00FF99', light: '#0e9f74' },
   'PWA': { dark: '#b794f6', light: '#7c3aed' },
   'Offline-first': { dark: '#ffb454', light: '#c26a00' },
+  'System Design': { dark: '#a78bfa', light: '#6d28d9' },
+  'Visualization': { dark: '#fb923c', light: '#c2410c' },
 
   // Frontend
   'Vue 3': { dark: '#42d392', light: '#2c7a5d' },

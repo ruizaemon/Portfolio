@@ -27,5 +27,20 @@ const projects = defineCollection({
   }),
 });
 
-export const collections = { blog, projects };
+const tools = defineCollection({
+  loader: glob({ pattern: '**/*.md', base: './src/content/tools' }),
+  schema: z.object({
+    title: z.string(),
+    description: z.string(),
+    image: z.string(),
+    lang: z.enum(['en', 'ja']).default('en'),
+    order: z.number().optional(),
+    inProgress: z.boolean().optional(),
+    tags: z.array(z.string()).default([]),
+    /** Which interactive component to mount (see components/tools/ToolMount.astro). */
+    component: z.enum(['capacity-sim']),
+  }),
+});
+
+export const collections = { blog, projects, tools };
 

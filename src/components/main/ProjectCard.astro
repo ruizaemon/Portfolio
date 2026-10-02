@@ -1,5 +1,6 @@
 ---
 import { tagColor } from '../../utils/projectTags';
+import { t } from '../../utils/i18n';
 
 interface Props {
   title: string;
@@ -12,6 +13,7 @@ interface Props {
 
 const { title, image, url, animationDelay = 0, inProgress = false, tags = [] } = Astro.props;
 
+const locale = Astro.currentLocale || 'en';
 const Tag = url ? 'a' : 'div';
 ---
 
@@ -20,7 +22,7 @@ const Tag = url ? 'a' : 'div';
   class={`project-card animate-fadeInUp${inProgress ? ' project-card--in-progress' : ''}`}
   style={`animation-delay: ${animationDelay}s;`}
 >
-  {inProgress && <span class="project-card-badge">In Progress</span>}
+  {inProgress && <span class="project-card-badge">{t(locale, 'projects.inProgress')}</span>}
   <div class="project-card-image-wrapper">
     <img src={image} alt={title} class="project-card-image" loading="lazy" />
     <div class="project-card-overlay"></div>

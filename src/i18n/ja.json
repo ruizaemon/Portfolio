@@ -32,6 +32,25 @@
   },
   "projects": {
     "title": "プロジェクト",
-    "noProjects": "まだプロジェクトがありません。また後でチェックしてください！"
+    "noProjects": "まだプロジェクトがありません。また後でチェックしてください！",
+    "inProgress": "開発中",
+    "toolsTitle": "ツール",
+    "toolsSubtitle": "インタラクティブな可視化ツールと便利なユーティリティ。",
+    "noTools": "まだツールがありません。また後でチェックしてください！"
+  },
+  "tools": {
+    "capacitySim": {
+      "controls": "コントロール",
+      "traffic": "トラフィック",
+      "requestsPerSec": "リクエスト / 秒",
+      "architecture": "アーキテクチャ",
+      "metrics": "メトリクス",
+      "maxRps": "最大処理可能RPS",
+      "bottleneck": "ボトルネック",
+      "latency": "レイテンシ（p50 / p99）",
+      "errorRate": "エラー率",
+      "underConstruction": "開発中 — シミュレーションエンジンは次のステップで実装予定です。",
+      "loading": "シミュレーターを読み込み中…"
+    }
   }
 }

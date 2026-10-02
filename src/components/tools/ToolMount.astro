@@ -1,0 +1,33 @@
+---
+/*
+ * Maps a tool's `component` key (from its content frontmatter) to its Vue island.
+ * Astro needs hydrated components imported statically, so each tool is listed
+ * explicitly here rather than looked up dynamically.
+ */
+import { t } from '@/utils/i18n';
+import CapacitySim from './capacity-sim/CapacitySim.vue';
+
+interface Props {
+  component: 'capacity-sim';
+  locale: string;
+}
+
+const { component, locale } = Astro.props;
+---
+
+{component === 'capacity-sim' && (
+  <CapacitySim client:only="vue" locale={locale}>
+    <p slot="fallback" class="tool-loading">{t(locale, 'tools.capacitySim.loading')}</p>
+  </CapacitySim>
+)}
+
+<style>
+  .tool-loading {
+    min-height: 360px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+  }
+</style>

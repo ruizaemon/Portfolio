@@ -7,7 +7,8 @@ import themeInitScript from '../scripts/themeInit.js?raw'; // import script as r
 
 const locale = Astro.currentLocale || 'en';
 // heroPage: overlay the header so the page content centers on the full viewport
-const { title, description, ogType = 'website', heroPage = false } = Astro.props;
+// wide: allow a wider content column (used by interactive tools)
+const { title, description, ogType = 'website', heroPage = false, wide = false } = Astro.props;
 
 const siteName = 'Daryl';
 const pageTitle = title ? `${title} | ${siteName}` : `${siteName} — ${t(locale, 'hero.subtitle')}`;
@@ -28,7 +29,7 @@ const metaDescription = description || t(locale, 'meta.description');
 		<meta property="og:site_name" content={siteName} />
 		<script is:inline set:html={themeInitScript}></script>
 	</head>
-	<body class:list={{ 'hero-page': heroPage }}>
+	<body class:list={{ 'hero-page': heroPage, 'wide-page': wide }}>
     <Header title="Portfolio" locale={locale} />
 		<main class="main-container">
       <slot />

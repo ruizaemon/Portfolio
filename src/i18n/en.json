@@ -18,10 +18,10 @@
   },
   "hero": {
     "title": "Hey, I'm <span style='color: var(--color-primary);'>Daryl</span>!",
-    "subtitle": "Full Stack Developer in Progress",
+    "subtitle": "Full Stack Developer",
     "location": "📍 Japan | Singapore",
     "description-1": "Web developer with 2 years of experience building with <span class='text-highlight' style='color: var(--color-primary);'>Vue</span> and <span class='text-highlight' style='color: var(--color-primary);'>Python</span>.",
-    "description-2": "Continuously learning and growing — currently expanding into <span class='text-highlight' style='color: var(--color-secondary);'>DevOps</span>, <span class='text-highlight' style='color: var(--color-secondary);'>Computer Networking</span>, and <span class='text-highlight' style='color: var(--color-secondary);'>System Design</span> to take my skills to the next level.",
+    "description-2": "Continuously learning and growing — currently expanding into <span class='text-highlight' style='color: var(--color-secondary);'>DevOps</span>, <span class='text-highlight' style='color: var(--color-secondary);'>Networking</span>, and <span class='text-highlight' style='color: var(--color-secondary);'>System Design</span> to take my skills to the next level.",
     "download-cv": "Download CV"
   },
   "blog": {
@@ -32,6 +32,25 @@
   },
   "projects": {
     "title": "Projects",
-    "noProjects": "No projects yet. Check back soon!"
+    "noProjects": "No projects yet. Check back soon!",
+    "inProgress": "In Progress",
+    "toolsTitle": "Tools",
+    "toolsSubtitle": "Interactive visualizations and handy utilities.",
+    "noTools": "No tools yet. Check back soon!"
+  },
+  "tools": {
+    "capacitySim": {
+      "controls": "Controls",
+      "traffic": "Traffic",
+      "requestsPerSec": "Requests / sec",
+      "architecture": "Architecture",
+      "metrics": "Metrics",
+      "maxRps": "Max sustainable RPS",
+      "bottleneck": "Bottleneck",
+      "latency": "Latency (p50 / p99)",
+      "errorRate": "Error rate",
+      "underConstruction": "Under construction — the simulator engine is coming next.",
+      "loading": "Loading simulator…"
+    }
   }
 }

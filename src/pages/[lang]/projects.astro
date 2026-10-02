@@ -20,6 +20,13 @@ const projects = allProjects
     const orderB = b.data.order ?? 999;
     return orderA - orderB;
   });
+
+const allTools = await getCollection('tools');
+const tools = allTools
+  .filter((tool) => tool.data.lang === locale)
+  .sort((a, b) => (a.data.order ?? 999) - (b.data.order ?? 999));
+// In-progress tools aren't linked on the live site, but stay clickable in dev
+const linkInProgress = import.meta.env.DEV;
 ---
 
 <PostListLayout title={t(locale, 'projects.title')}>
@@ -42,6 +49,31 @@ const projects = allProjects
       })}
     </div>
   )}
+
+  <section class="tools-section" aria-labelledby="tools-title">
+    <h2 id="tools-title" class="section-title animate-fadeInUp">{t(locale, 'projects.toolsTitle')}</h2>
+    <p class="section-subtitle animate-fadeInUp" style="animation-delay: 0.05s;">{t(locale, 'projects.toolsSubtitle')}</p>
+    {tools.length === 0 ? (
+      <p class="no-projects">{t(locale, 'projects.noTools')}</p>
+    ) : (
+      <div class="projects-grid">
+        {tools.map((tool, index) => {
+          const filename = tool.id.split('/').pop();
+          const linked = !tool.data.inProgress || linkInProgress;
+          return (
+            <ProjectCard
+              title={tool.data.title}
+              image={tool.data.image}
+              url={linked ? `/${locale}/projects/tools/${filename}` : undefined}
+              animationDelay={(projects.length + index + 1) * 0.1}
+              inProgress={tool.data.inProgress}
+              tags={tool.data.tags}
+            />
+          );
+        })}
+      </div>
+    )}
+  </section>
 </PostListLayout>
 
 <style>
@@ -50,6 +82,23 @@ const projects = allProjects
     color: var(--color-text-muted);
     padding: 3rem 1rem;
     font-size: 1.125rem;
+  }
+
+  .tools-section {
+    margin-top: 1.5rem;
+  }
+
+  .section-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--color-text);
+    margin: 0 0 0.5rem;
+  }
+
+  .section-subtitle {
+    color: var(--color-text-muted);
+    margin: 0 0 1.5rem;
+    line-height: 1.6;
   }
 
   .projects-grid {

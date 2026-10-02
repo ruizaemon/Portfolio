@@ -1,0 +1,28 @@
+---
+import { getCollection, render } from 'astro:content';
+import { languages } from '@/utils/languages';
+import ToolLayout from '@/layouts/ToolLayout.astro';
+import ToolMount from '@/components/tools/ToolMount.astro';
+
+export async function getStaticPaths() {
+  const tools = await getCollection('tools');
+
+  return languages.flatMap((lang) =>
+    tools
+      .filter((tool) => tool.data.lang === lang.code)
+      .map((tool) => ({
+        // "en/capacity-sim" -> "capacity-sim"
+        params: { lang: lang.code, slug: tool.id.split('/').pop() as string },
+        props: { tool },
+      }))
+  );
+}
+
+const { tool } = Astro.props;
+const { Content } = await render(tool);
+---
+
+<ToolLayout frontmatter={tool.data}>
+  <ToolMount slot="tool" component={tool.data.component} locale={tool.data.lang} />
+  <Content />
+</ToolLayout>
