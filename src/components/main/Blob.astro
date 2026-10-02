@@ -26,6 +26,8 @@
     lastFrameTime: number | null = null;
     fadeStartTime = 0;
     isMobile: boolean;
+    reducedMotion: boolean;
+    mouseEnabled: boolean;
     fadeInComplete = false;
 
     /* Blob animation parameters */
@@ -41,12 +43,19 @@
     mouseSmoothing = 0.03; // per-60fps-frame rate at which mouseX/mouseY track the mouse
     blobPosLerp = 0.05; // per-60fps-frame rate at which blob position approaches target
 
+    /* Gentler parameters used when the user prefers reduced motion */
+    reducedOscillationMagnitude = 30;
+    reducedTimeScale = 0.6;
+
     constructor() {
       this.blobs = document.querySelectorAll<HTMLElement>('.blob');
       this.blobPositions = Array.from(this.blobs).map(() => ({ x: 0, y: 0 }));
       this.blobScales = Array.from(this.blobs).map(() => 0);
       this.blobOpacities = Array.from(this.blobs).map(() => 0);
       this.isMobile = this.detectMobile();
+      this.reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      // No pointer-driven movement on touch devices or for reduced-motion users
+      this.mouseEnabled = !this.isMobile && !this.reducedMotion;
 
       // Pre-cache blob speeds and frequencies to avoid parsing every frame
       this.blobSpeeds = Array.from(this.blobs).map(blob =>
@@ -68,16 +77,13 @@
     }
 
     init() {
-      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        this.blobs.forEach(blob => {
-          blob.style.opacity = String(this.maxOpacity);
-          blob.style.transform = `translate3d(-50%, -50%, 0) scale(${this.maxScale})`;
-        });
-        return;
+      // Reduced motion keeps the fade-in but slows and shrinks the drift
+      if (this.reducedMotion) {
+        this.oscillationMagnitude = this.reducedOscillationMagnitude;
+        this.timeScale = this.reducedTimeScale;
       }
 
-      // Only add mouse interaction on non-mobile devices
-      if (!this.isMobile) {
+      if (this.mouseEnabled) {
         // Maps screen coordinates to [-1, 1] range
         document.addEventListener('mousemove', (e) => {
           this.targetX = (e.clientX / window.innerWidth - 0.5) * 2;
@@ -128,8 +134,8 @@
         this.fadeInComplete = allComplete;
       }
 
-      // Mouse smoothing (outside loop for non-mobile)
-      if (!this.isMobile) {
+      // Mouse smoothing (outside loop)
+      if (this.mouseEnabled) {
         this.mouseX += (this.targetX - this.mouseX) * mouseK;
         this.mouseY += (this.targetY - this.mouseY) * mouseK;
       }
@@ -147,8 +153,8 @@
         let targetX = autoX;
         let targetY = autoY;
 
-        // Apply mouse interaction only on non-mobile devices
-        if (!this.isMobile) {
+        // Apply mouse interaction only when enabled
+        if (this.mouseEnabled) {
           targetX = (-this.mouseX * this.mouseForce * speed) + autoX;
           targetY = (-this.mouseY * this.mouseForce * speed) + autoY;
         }
