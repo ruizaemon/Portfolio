@@ -81,13 +81,13 @@ All 4 requests are in progress at once, but only 2 are using a core at any momen
 
 **The most requests the workers can handle.** A sync worker is tied up for a request's whole time in flight, so the workers can only get through so many requests per second:
 
-> `max req/s from workers = workers / time each request is in flight`
+> `max req/s from workers = workers / time each request is in flight (in seconds)`
 
 One worker that's busy for 22 ms per request finishes 1000 / 22 ≈ **45 requests per second**, so 4 workers can handle at most **182**. Your traffic per server needs to stay below that, as with every maximum in the simulator. If requests arrive faster than the workers can finish them, the extra ones wait in line for a free worker, latency climbs, and eventually requests time out. The WORK bar on the app server shows how close you are.
 
 **How many workers is right?** Enough to keep every core busy while other workers wait on the database:
 
-> `workers needed ≈ cores × time in flight / CPU time per request`
+> `workers needed ≈ cores × time in flight / CPU time per request (both in ms)`
 
 With the defaults, that's 2 × 22 / 10 ≈ 4.4, so about 5. It matches Gunicorn's guideline of (2 × cores) + 1, because these requests spend about half their time waiting. The longer requests wait compared with using the CPU, the more workers you need.
 
@@ -102,7 +102,7 @@ With the defaults, that's 2 × 22 / 10 ≈ 4.4, so about 5. It matches Gunicorn'
 
 A virtual CPU core, the unit cloud providers sell compute in. Each core can work on one thing at a time, and it has 1,000 ms of working time every second. A worker process uses one core at a time, so the cores that can actually be used are the smaller of workers and vCPU. That gives the most requests per second the CPU can handle:
 
-> `max req/s from CPU = min(workers, vCPU) × 1000 / CPU time per request`
+> `max req/s from CPU = min(workers, vCPU) × 1000 / CPU time per request (in ms)`
 
 If a request needs 10 ms of CPU, one core can finish 1000 / 10 = **100 requests per second**, and 2 cores with 2 workers can finish **200**. Past that point, requests arrive faster than the cores can work through them, so a queue builds up. More cores also mean less waiting before that point: with several cores, a new request is more likely to find one free.
 
@@ -138,7 +138,7 @@ How that limits the server depends on the server type.
 
 That's how many requests fit in memory at once, not how many per second. To turn it into a rate, the simulator uses **Little's law**: if each request stays in flight for a certain time, then
 
-> `max req/s from RAM = requests in flight / time each request is in flight`
+> `max req/s from RAM = requests in flight / time each request is in flight (in seconds)`
 
 A request stays in flight for its CPU time **plus** the time it waits on the cache and database. With the defaults, (3,686 MB − 2 × 100 MB) / 100 KB ≈ 34,900 requests fit at once. Each stays about 22 ms (10 ms of CPU plus three 4 ms queries), so 34,900 / 0.022 s ≈ **1.6 million requests per second**. On an async server, memory is almost never the limit.
 
@@ -146,7 +146,7 @@ A request stays in flight for its CPU time **plus** the time it waits on the cac
 
 > `workers that fit = RAM × 90% / (memory per worker + memory per request)`
 
-Each worker serves one request at a time, so Little's law turns that into a rate the same way: `max req/s from RAM = workers that fit / time each request is in flight`. With 4 GB, 100 MB workers and 50 MB requests, 3,686 / 150 ≈ 24 workers fit, so 24 / 0.022 s ≈ **1,090 requests per second**. If you set more workers than fit, the extra ones would be killed for running out of memory, and the simulator warns you.
+Each worker serves one request at a time, so Little's law turns that into a rate the same way: `max req/s from RAM = workers that fit / time each request is in flight (in seconds)`. With 4 GB, 100 MB workers and 50 MB requests, 3,686 / 150 ≈ 24 workers fit, so 24 / 0.022 s ≈ **1,090 requests per second**. If you set more workers than fit, the extra ones would be killed for running out of memory, and the simulator warns you.
 
 Either way, slow database queries hurt app servers too: requests stay in flight longer, so fewer get through with the same memory or workers.
 
@@ -284,7 +284,11 @@ Text responses like JSON and HTML are usually compressed (gzip or Brotli), which
 
 #### DB connections / worker
 
-How many database connections each worker process keeps open. A request needs a free connection to run a query. Connections aren't shared between processes, so the totals multiply:
+How many database connections each worker process keeps open. A request needs a free connection to run a query.
+
+**Each worker has its own pool.** Workers are separate processes, and a connection belongs to the process that opened it, so one worker can't use another worker's connections. A pool is only shared by the requests inside the same worker. With 2 workers and a pool of 10, that's 2 separate pools of 10 connections each, not one pool of 10 shared by both. Sharing connections across workers takes a separate pooler process such as PgBouncer (see Setting the pool size below).
+
+So the totals multiply:
 
 > `connections opened = servers × workers × connections per worker`
 
@@ -326,13 +330,33 @@ With 100 requests per second, no cache and 3 queries each, the database gets 100
 
 The same idea as on the app server. The simulator treats each query as CPU work, so:
 
-> `max queries/s from CPU = vCPU × 1000 / query time`
+> `max queries/s from CPU = vCPU × 1000 / query time (in ms)`
 
 2 vCPU with 4 ms queries gives 2 × 1000 / 4 = **500 queries per second**. At 3 queries per request, that's about 167 requests per second, which is why the database is the first thing to break in the One VPS scenario.
 
 #### Query time
 
 How long one query takes. It's used for the max queries/s from CPU above and from connections below, and for the latency each query adds. A request makes its queries one after another, so 3 queries of 4 ms add about 12 ms to every request that reaches the database.
+
+Query times vary enormously, mostly depending on whether the database can use an index and whether the data is already in memory. Some typical values for a database like PostgreSQL:
+
+| Query | Typical time |
+| --- | --- |
+| Look up one row by its primary key | **0.2–1 ms** |
+| Indexed lookup returning a few rows, or a simple join | **0.5–5 ms** |
+| Insert or update one row and commit it | **1–5 ms** |
+| One page of results (around 50 rows) with joins and sorting | **2–20 ms** |
+| Count or sum over hundreds of thousands of rows | **50–500 ms** |
+| Searching a large table without a suitable index (a full table scan) | **100 ms to several seconds** |
+| Reporting or analytics query over a large dataset | **seconds to minutes** |
+
+These are the times the app actually waits for, so they include the **network round trip**: the query travelling from the app server to the database, and the result coming back. In the same data center that's about 0.1–0.5 ms, which is why even the fastest row in the table starts at 0.2 ms.
+
+The round trip is paid on every query, one after another, so keep the database in the same region as your app servers, ideally the same data center. A database in another region adds tens of milliseconds to every query: with the app in the US and the database in Tokyo, each query pays about 150 ms, and a request with 3 queries waits about half a second on the network alone.
+
+The simulator's default of 4 ms is a typical average for a web app whose queries use indexes. A single missing index can turn a 1 ms query into a 1-second one, which is why adding indexes is often the cheapest performance fix there is. Also watch the number of queries per request: code that runs one query per item in a list (the "N+1 queries" problem) can turn one request into hundreds of queries.
+
+Keep in mind that the simulator counts all of the query time as database CPU. Slow queries that are mostly waiting on disk or locks use less CPU than that, but they hold their connection the whole time, so in practice they tend to run out of connections first.
 
 #### Max connections
 
@@ -342,9 +366,9 @@ The most connections the database accepts at once. Only connections that servers
 
 Each connection runs one query at a time, so:
 
-> `max queries/s from connections = usable connections × 1000 / query time`
+> `max queries/s from connections = usable connections × 1000 / query time (in ms)`
 
-With 1 server, 2 workers and a pool of 10 each, that's 20 connections, so 20 × 1000 / 4 = **5,000 queries per second**. Because this model treats query time as pure CPU time, connections only become the tighter limit when there are fewer usable connections than vCPUs. In real databases, queries also wait on disk and locks, so connections tend to run out sooner. If servers ask for more connections than the database allows, the simulator warns you, because in practice those extra connections would be refused.
+With 1 server running 2 workers, each worker has its own separate pool of 10 (pools can't be shared between processes), so that's 20 connections in total, and 20 × 1000 / 4 = **5,000 queries per second**. Because this model treats query time as pure CPU time, connections only become the tighter limit when there are fewer usable connections than vCPUs. In real databases, queries also wait on disk and locks, so connections tend to run out sooner. If servers ask for more connections than the database allows, the simulator warns you, because in practice those extra connections would be refused.
 
 #### Read replicas
 
