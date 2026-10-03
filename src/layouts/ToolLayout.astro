@@ -2,6 +2,7 @@
 import BaseLayout from './BaseLayout.astro';
 import { t } from '@/utils/i18n';
 import { tagColor } from '@/utils/projectTags';
+import LastUpdated from '@/components/main/LastUpdated.astro';
 
 interface Props {
   frontmatter: {
@@ -9,6 +10,7 @@ interface Props {
     description: string;
     lang: 'en' | 'ja';
     tags?: string[];
+    updatedDate?: Date;
   };
 }
 
@@ -27,6 +29,9 @@ const tags = frontmatter.tags ?? [];
         {t(locale, 'common.back')}
       </a>
       <h1 class="tool-title animate-fadeInUp">{frontmatter.title}</h1>
+      {frontmatter.updatedDate && (
+        <LastUpdated date={frontmatter.updatedDate} locale={locale} class="animate-fadeInUp" style="animation-delay: 0.05s;" />
+      )}
       <p class="tool-description animate-fadeInUp" style="animation-delay: 0.05s;">{frontmatter.description}</p>
       {tags.length > 0 && (
         <div class="tool-tags animate-fadeInUp" style="animation-delay: 0.1s;">
@@ -121,9 +126,7 @@ const tags = frontmatter.tags ?? [];
     margin: 2rem 0;
   }
 
-  /* Write-up below the tool: keep a readable line length */
   .tool-content {
-    max-width: 85ch;
     line-height: 1.8;
     color: var(--color-text);
   }
@@ -134,10 +137,203 @@ const tags = frontmatter.tags ?? [];
     margin-bottom: 1rem;
   }
 
+  /* Sub-sections (e.g. "App server", "Database"): a divider marks where each starts */
   .tool-content :global(h3) {
-    font-size: 1.25rem;
-    margin-top: 1.5rem;
-    margin-bottom: 0.75rem;
+    font-size: 1.3rem;
+    margin-top: 2.5rem;
+    margin-bottom: 1rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  :global([data-theme="light"]) .tool-content :global(h3) {
+    border-top-color: rgba(0, 0, 0, 0.15);
+  }
+
+  /* Individual parameters (e.g. "vCPU", "RAM"): accent color so they're easy to scan */
+  .tool-content :global(h4) {
+    font-size: 1.05rem;
+    color: var(--color-primary);
+    margin-top: 1.75rem;
+    margin-bottom: 0.375rem;
+  }
+
+  /* Explanations inside a section (e.g. "Why sync workers cost so much more"):
+     a different color so they don't read as another parameter */
+  .tool-content :global(h5) {
+    font-size: 1rem;
+    color: var(--color-secondary);
+    margin-top: 1.75rem;
+    margin-bottom: 0.375rem;
+  }
+
+  /* Table of contents: <nav class="toc"> in the markdown. A vertical tree,
+     with a guide line marking each nested level */
+  .tool-content :global(nav.toc) {
+    width: fit-content;
+    max-width: 100%;
+    margin: 0 0 2.5rem;
+    padding: 1rem 1.5rem 1.125rem 1.25rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    background-color: rgba(255, 255, 255, 0.02);
+    line-height: 1.4;
+  }
+
+  :global([data-theme="light"]) .tool-content :global(nav.toc) {
+    border-color: rgba(0, 0, 0, 0.15);
+    background-color: rgba(0, 0, 0, 0.02);
+  }
+
+  .tool-content :global(nav.toc > p) {
+    margin: 0 0 0.75rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .tool-content :global(nav.toc ul) {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .tool-content :global(nav.toc li) {
+    margin: 0;
+  }
+
+  /* Nested levels: indented, with a guide line on the left */
+  .tool-content :global(nav.toc ul ul) {
+    margin: 0.25rem 0 0.375rem 0.375rem;
+    padding-left: 0.875rem;
+    border-left: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  :global([data-theme="light"]) .tool-content :global(nav.toc ul ul) {
+    border-left-color: rgba(0, 0, 0, 0.15);
+  }
+
+  .tool-content :global(nav.toc a) {
+    display: inline-block;
+    padding: 0.1875rem 0;
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  /* Level 1: page sections */
+  .tool-content :global(nav.toc > ul > li > a) {
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  .tool-content :global(nav.toc > ul > li + li) {
+    margin-top: 0.25rem;
+  }
+
+  /* Level 2: groups (App server, Database) */
+  .tool-content :global(nav.toc > ul > li > ul > li > a) {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--color-text);
+  }
+
+  /* Level 3: individual parameters */
+  .tool-content :global(nav.toc ul ul ul a) {
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: var(--color-text-muted);
+  }
+
+  .tool-content :global(nav.toc a:hover),
+  .tool-content :global(nav.toc a:focus-visible) {
+    color: var(--color-primary);
+  }
+
+  .tool-content :global(nav.toc a:focus-visible) {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tool-content :global(nav.toc a) {
+      transition: none;
+    }
+  }
+
+  /* Collapsible explanations: <details class="explainer"> in the markdown */
+  .tool-content :global(details.explainer) {
+    margin: 0.75rem 0;
+    padding: 0 1.25rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+  }
+
+  :global([data-theme="light"]) .tool-content :global(details.explainer) {
+    border-color: rgba(0, 0, 0, 0.15);
+  }
+
+  .tool-content :global(details.explainer > summary) {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 0;
+    font-weight: 600;
+    color: var(--color-secondary);
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .tool-content :global(details.explainer > summary::-webkit-details-marker) {
+    display: none;
+  }
+
+  /* Chevron that points right when closed and down when open */
+  .tool-content :global(details.explainer > summary::before) {
+    content: '';
+    flex-shrink: 0;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(-45deg);
+    transition: transform 0.2s ease;
+  }
+
+  .tool-content :global(details.explainer[open] > summary::before) {
+    transform: rotate(45deg);
+  }
+
+  .tool-content :global(details.explainer > summary:hover) {
+    color: var(--color-secondary-hover);
+  }
+
+  .tool-content :global(details.explainer > summary:focus-visible) {
+    outline: 2px solid var(--color-secondary);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  .tool-content :global(details.explainer[open]) {
+    padding-bottom: 0.25rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tool-content :global(details.explainer > summary::before) {
+      transition: none;
+    }
+  }
+
+  /* Keep a heading visually attached to its text */
+  .tool-content :global(h4 + p),
+  .tool-content :global(h5 + p) {
+    margin-top: 0;
+  }
+
+  .tool-content :global(h3 + h4),
+  .tool-content :global(h3 + p + h4) {
+    margin-top: 1.25rem;
   }
 
   .tool-content :global(p) {
@@ -150,10 +346,86 @@ const tags = frontmatter.tags ?? [];
   }
 
   .tool-content :global(code) {
+    /* The site font is already monospace; the browser's default one renders smaller */
+    font-family: inherit;
     background-color: rgba(0, 255, 153, 0.1);
     padding: 0.2em 0.4em;
     border-radius: 4px;
     font-size: 0.9em;
+  }
+
+  /* Code blocks (syntax-highlighted by Astro) */
+  .tool-content :global(pre) {
+    margin: 0 0 1.5rem;
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    overflow-x: auto;
+    font-size: 0.875rem;
+    line-height: 1.6;
+  }
+
+  .tool-content :global(pre code) {
+    background: none;
+    padding: 0;
+    font-size: inherit;
+  }
+
+  /* Formulas are written as blockquotes in the markdown ("> `a = b / c`") */
+  .tool-content :global(blockquote) {
+    display: table;
+    margin: 0 0 1.5rem;
+    padding: 0.5em 0.9em;
+    border-left: 3px solid var(--color-primary);
+    border-radius: 0 6px 6px 0;
+    background-color: rgba(0, 255, 153, 0.1);
+  }
+
+  .tool-content :global(blockquote p) {
+    margin: 0;
+  }
+
+  .tool-content :global(blockquote code) {
+    background: none;
+    padding: 0;
+    font-size: 0.95em;
+  }
+
+  .tool-content :global(table) {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    border-collapse: collapse;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+
+  .tool-content :global(th),
+  .tool-content :global(td) {
+    text-align: left;
+    padding: 0.5rem 1.25rem 0.5rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  :global([data-theme="light"]) .tool-content :global(th),
+  :global([data-theme="light"]) .tool-content :global(td) {
+    border-bottom-color: rgba(0, 0, 0, 0.15);
+  }
+
+  .tool-content :global(th) {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  /* Bold values in a table (e.g. "1–5 ms"): highlight and keep on one line */
+  .tool-content :global(td strong) {
+    white-space: nowrap;
+    color: var(--color-primary);
+    font-weight: 600;
   }
 
   .tool-content :global(ul),

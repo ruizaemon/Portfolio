@@ -4,6 +4,7 @@ description: ローカルファースト設計の家計簿PWA。Vue 3 / Quasar �
 image: /projects/mira/hero.webp
 lang: ja
 order: 1
+updatedDate: 2026-08-23
 tags: ['Full-stack', 'Vue 3', 'TypeScript', 'FastAPI', 'PostgreSQL', 'PWA']
 ---
 

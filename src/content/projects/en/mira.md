@@ -4,6 +4,7 @@ description: A local-first spending tracker PWA with a custom sync engine, built
 image: /projects/mira/hero.webp
 lang: en
 order: 1
+updatedDate: 2026-08-23
 tags: ['Full-stack', 'Vue 3', 'TypeScript', 'FastAPI', 'PostgreSQL', 'PWA']
 ---
 

@@ -1,0 +1,32 @@
+---
+import { t } from '@/utils/i18n';
+
+interface Props {
+  date: Date;
+  locale: string;
+  class?: string;
+  style?: string;
+}
+
+const { date, locale, class: className, style } = Astro.props;
+
+// Frontmatter dates are parsed as UTC midnight; format in UTC so the day never shifts
+const formatted = new Intl.DateTimeFormat(locale === 'ja' ? 'ja-JP' : 'en-US', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+  timeZone: 'UTC',
+}).format(date);
+---
+
+<p class:list={['last-updated', className]} style={style}>
+  {t(locale, 'common.lastUpdated')}: <time datetime={date.toISOString().slice(0, 10)}>{formatted}</time>
+</p>
+
+<style>
+  .last-updated {
+    margin: 0 0 1rem;
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+  }
+</style>

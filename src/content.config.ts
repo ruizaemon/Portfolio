@@ -22,6 +22,7 @@ const projects = defineCollection({
     lang: z.enum(['en', 'ja']).default('en'),
     order: z.number().optional(),
     inProgress: z.boolean().optional(),
+    updatedDate: z.coerce.date().optional(),
     /** Stack / concept chips shown on the project card (see utils/projectTags.ts for colors). */
     tags: z.array(z.string()).default([]),
   }),
@@ -36,6 +37,7 @@ const tools = defineCollection({
     lang: z.enum(['en', 'ja']).default('en'),
     order: z.number().optional(),
     inProgress: z.boolean().optional(),
+    updatedDate: z.coerce.date().optional(),
     tags: z.array(z.string()).default([]),
     /** Which interactive component to mount (see components/tools/ToolMount.astro). */
     component: z.enum(['capacity-sim']),

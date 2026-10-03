@@ -2,6 +2,7 @@
 import BaseLayout from './BaseLayout.astro';
 import { t } from '@/utils/i18n';
 import { tagColor } from '@/utils/projectTags';
+import LastUpdated from '@/components/main/LastUpdated.astro';
 
 interface Props {
   frontmatter: {
@@ -9,6 +10,7 @@ interface Props {
     description?: string;
     lang: 'en' | 'ja';
     tags?: string[];
+    updatedDate?: Date;
   };
 }
 
@@ -27,6 +29,9 @@ const tags = frontmatter.tags ?? [];
         {t(locale, 'common.back')}
       </a>
       <h1 class="post-title animate-fadeInUp">{frontmatter.title}</h1>
+      {frontmatter.updatedDate && (
+        <LastUpdated date={frontmatter.updatedDate} locale={locale} class="animate-fadeInUp" style="animation-delay: 0.05s;" />
+      )}
       {tags.length > 0 && (
         <div class="project-tags animate-fadeInUp" style="animation-delay: 0.1s;">
           {tags.map((tag) => {

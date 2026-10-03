@@ -9,7 +9,8 @@
   "common": {
     "loading": "Loading...",
     "error": "An error occurred",
-    "back": "Back"
+    "back": "Back",
+    "lastUpdated": "Last updated"
   },
   "nav": {
     "home": "Home",
@@ -40,17 +41,189 @@
   },
   "tools": {
     "capacitySim": {
+      "loading": "Loading simulator…",
       "controls": "Controls",
-      "traffic": "Traffic",
-      "requestsPerSec": "Requests / sec",
-      "architecture": "Architecture",
+      "presets": "Scenarios",
+      "custom": "Custom",
+      "customDesc": "Your own setup. Pick a scenario to reset.",
+      "enable": "Enable {name}",
+      "groups": {
+        "traffic": "Traffic",
+        "cdn": "CDN",
+        "lb": "Load balancer",
+        "app": "App servers",
+        "cache": "Cache",
+        "db": "Database"
+      },
+      "fields": {
+        "rps": "Requests / sec",
+        "readRatio": "Reads",
+        "responseKB": "Response size",
+        "queriesPerRequest": "DB queries / request",
+        "cdnHitRatio": "Served at the edge",
+        "lbMaxRps": "Max throughput",
+        "appCount": "Servers",
+        "vcpu": "vCPU",
+        "ramGB": "RAM",
+        "netGbps": "Network",
+        "cpuMs": "CPU time / request",
+        "memMB": "Memory / request",
+        "poolSize": "DB connections / worker",
+        "cacheHitRatio": "Hit rate",
+        "cacheMaxOps": "Max ops / sec",
+        "dbVcpu": "vCPU",
+        "queryMs": "Query time",
+        "maxConnections": "Max connections",
+        "replicas": "Read replicas",
+        "serverType": "Server type",
+        "workers": "Workers / server",
+        "workerMemMB": "Memory / worker"
+      },
+      "needsLb": "Turn on the load balancer to run more than one server.",
+      "nodes": {
+        "clients": "Clients",
+        "cdn": "CDN",
+        "lb": "Load balancer",
+        "app": "App server",
+        "cache": "Cache",
+        "dbPrimary": "DB primary",
+        "dbReplica": "Read replica"
+      },
+      "nodeOff": "Off · click to add",
+      "sub": {
+        "clients": "{rps} req/s",
+        "cdn": "{hit}% at the edge",
+        "lb": "up to {max} req/s",
+        "app": "{vcpu} vCPU · {ram} GB",
+        "cache": "{hit}% hit rate",
+        "dbPrimaryAll": "reads + writes",
+        "dbPrimaryWrites": "writes only",
+        "dbReplica": "reads"
+      },
+      "resShort": {
+        "cpu": "CPU",
+        "ram": "RAM",
+        "network": "NET",
+        "throughput": "RPS",
+        "ops": "OPS",
+        "connections": "CONN",
+        "workers": "WORK"
+      },
+      "res": {
+        "cpu": "CPU",
+        "ram": "Memory",
+        "network": "Network",
+        "throughput": "Throughput",
+        "ops": "Operations",
+        "connections": "Connections",
+        "workers": "Workers"
+      },
+      "units": {
+        "req": "req/s",
+        "query": "queries/s",
+        "op": "ops/s"
+      },
+      "unitsShort": {
+        "req": "req/s",
+        "query": "q/s",
+        "op": "ops/s"
+      },
+      "bottleneckBadge": "Bottleneck",
+      "diagramLabel": "Architecture diagram. Click a component to inspect it, or a faded one to add it.",
       "metrics": "Metrics",
-      "maxRps": "Max sustainable RPS",
-      "bottleneck": "Bottleneck",
-      "latency": "Latency (p50 / p99)",
-      "errorRate": "Error rate",
-      "underConstruction": "Under construction — the simulator engine is coming next.",
-      "loading": "Loading simulator…"
+      "m": {
+        "traffic": "Traffic",
+        "maxRps": "Max sustainable",
+        "headroom": "{x}× headroom",
+        "overCapacity": "{x}% over capacity",
+        "bottleneck": "Bottleneck",
+        "bottleneckHint": "first to saturate as traffic grows",
+        "none": "None",
+        "latency": "Latency (avg / p99)",
+        "errorRate": "Errors",
+        "served": "{rps} req/s succeed",
+        "timeout": "timeout"
+      },
+      "details": {
+        "title": "Why?",
+        "perInstance": "per instance",
+        "instances": "{n} instances",
+        "load": "Load",
+        "capacity": "Capacity",
+        "utilization": "Utilization",
+        "latency": "Time here (avg / p99)",
+        "limits": "What limits it",
+        "limiting": "limit",
+        "cdn": "The CDN answers cached requests close to the user, so they never reach your servers. It's treated as unlimited.",
+        "hint": "Click a component in the diagram to see how its numbers are worked out."
+      },
+      "formulas": {
+        "app": {
+          "cpu": "min({workers} workers, {vcpu} vCPU) × 1000 / {cpuMs} ms",
+          "network": "{netGbps} Gbps / {responseKB} KB per response",
+          "ramAsync": "({usableMB} MB − {workers} workers × {workerMemMB} MB) / {memMB} MB = {concurrency} in flight, each for {inFlightMs} ms",
+          "ramSync": "{usableMB} MB / ({workerMemMB} + {memMB} MB per worker) = {fit} workers fit, each busy {inFlightMs} ms per request",
+          "workers": "{workers} workers, one request each, busy {inFlightMs} ms per request"
+        },
+        "lb": {
+          "throughput": "rated for {maxRps} req/s"
+        },
+        "cache": {
+          "ops": "rated for {maxOps} ops/s (single-threaded)"
+        },
+        "db": {
+          "cpu": "{vcpu} vCPU × 1000 / {queryMs} ms",
+          "connections": "min({maxConnections} max, {servers} × {workers} × {poolSize} = {opened} opened) × 1000 / {queryMs} ms"
+        }
+      },
+      "warnings": {
+        "lbRequired": "Only 1 of {count} servers gets traffic: without a load balancer, clients can only reach one.",
+        "connectionsExceeded": "{servers} servers × {workers} workers × {pool} connections = {needed}, but the database allows {max}. The extra connections are refused.",
+        "idleCores": "Only {workers} of {vcpu} vCPUs are used: each worker process runs on one core at a time. Add workers to use the rest.",
+        "workersDontFit": "Only {fit} of {workers} workers fit in {ramGB} GB of RAM. The rest would be killed for running out of memory."
+      },
+      "presetList": {
+        "oneVps": {
+          "name": "One VPS",
+          "desc": "One app server and one database. Each request makes 3 queries, so the database runs out of CPU first, at about 167 req/s."
+        },
+        "addCache": {
+          "name": "Add a cache",
+          "desc": "85% of reads now come from the cache, cutting database load by three quarters. The bottleneck moves to the app server's CPU."
+        },
+        "scaleOut": {
+          "name": "Scale out",
+          "desc": "A load balancer spreads traffic over 4 servers. The app tier can take 800 req/s, so the database is the limit again."
+        },
+        "readReplicas": {
+          "name": "Read replicas",
+          "desc": "Two replicas take the reads, but each still replays every write. With the primary only handling writes, the replicas become the limit."
+        },
+        "blackFriday": {
+          "name": "Black Friday",
+          "desc": "Traffic jumps 5×. Most requests fail. Try a CDN, more servers and more replicas to survive it."
+        }
+      },
+      "serverTypes": {
+        "async": {
+          "name": "Async",
+          "desc": "Each worker juggles many requests at once (Node.js, FastAPI with async code)."
+        },
+        "sync": {
+          "name": "Sync",
+          "desc": "Each worker handles one request at a time (Gunicorn sync workers, PHP-FPM, Unicorn)."
+        }
+      },
+      "maxFit": "Max that fits in RAM: {n}",
+      "noneFit": "Not even one worker fits in RAM",
+      "useMax": "Use max",
+      "useMaxAria": "Set workers to {n}, the most that fit in RAM",
+      "recommended": {
+        "async": "One per core: {n}",
+        "sync": "Gunicorn guideline, (2 × cores) + 1: {n}"
+      },
+      "useRecommended": "Use",
+      "useRecommendedAria": "Set workers to the recommended {n}"
     }
   }
 }

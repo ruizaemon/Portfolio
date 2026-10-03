@@ -9,7 +9,8 @@
   "common": {
     "loading": "読み込み中...",
     "error": "エラーが発生しました",
-    "back": "戻る"
+    "back": "戻る",
+    "lastUpdated": "最終更新"
   },
   "nav": {
     "home": "ホーム",
@@ -40,17 +41,189 @@
   },
   "tools": {
     "capacitySim": {
+      "loading": "シミュレーターを読み込み中…",
       "controls": "コントロール",
-      "traffic": "トラフィック",
-      "requestsPerSec": "リクエスト / 秒",
-      "architecture": "アーキテクチャ",
+      "presets": "シナリオ",
+      "custom": "カスタム",
+      "customDesc": "独自の構成です。シナリオを選ぶとリセットされます。",
+      "enable": "{name}を有効にする",
+      "groups": {
+        "traffic": "トラフィック",
+        "cdn": "CDN",
+        "lb": "ロードバランサー",
+        "app": "アプリサーバー",
+        "cache": "キャッシュ",
+        "db": "データベース"
+      },
+      "fields": {
+        "rps": "リクエスト / 秒",
+        "readRatio": "読み取りの割合",
+        "responseKB": "レスポンスサイズ",
+        "queriesPerRequest": "リクエストあたりのクエリ数",
+        "cdnHitRatio": "エッジで処理する割合",
+        "lbMaxRps": "最大スループット",
+        "appCount": "サーバー数",
+        "vcpu": "vCPU",
+        "ramGB": "RAM",
+        "netGbps": "ネットワーク",
+        "cpuMs": "リクエストあたりのCPU時間",
+        "memMB": "リクエストあたりのメモリ",
+        "poolSize": "ワーカーあたりのDB接続数",
+        "cacheHitRatio": "ヒット率",
+        "cacheMaxOps": "最大オペレーション / 秒",
+        "dbVcpu": "vCPU",
+        "queryMs": "クエリ時間",
+        "maxConnections": "最大接続数",
+        "replicas": "リードレプリカ",
+        "serverType": "サーバーの種類",
+        "workers": "サーバーあたりのワーカー数",
+        "workerMemMB": "ワーカーあたりのメモリ"
+      },
+      "needsLb": "複数のサーバーを使うにはロードバランサーを有効にしてください。",
+      "nodes": {
+        "clients": "クライアント",
+        "cdn": "CDN",
+        "lb": "ロードバランサー",
+        "app": "アプリサーバー",
+        "cache": "キャッシュ",
+        "dbPrimary": "DB プライマリ",
+        "dbReplica": "リードレプリカ"
+      },
+      "nodeOff": "オフ · クリックで追加",
+      "sub": {
+        "clients": "{rps} req/s",
+        "cdn": "エッジで {hit}%",
+        "lb": "最大 {max} req/s",
+        "app": "{vcpu} vCPU · {ram} GB",
+        "cache": "ヒット率 {hit}%",
+        "dbPrimaryAll": "読み書き",
+        "dbPrimaryWrites": "書き込みのみ",
+        "dbReplica": "読み取り"
+      },
+      "resShort": {
+        "cpu": "CPU",
+        "ram": "RAM",
+        "network": "NET",
+        "throughput": "RPS",
+        "ops": "OPS",
+        "connections": "CONN",
+        "workers": "WORK"
+      },
+      "res": {
+        "cpu": "CPU",
+        "ram": "メモリ",
+        "network": "ネットワーク",
+        "throughput": "スループット",
+        "ops": "オペレーション",
+        "connections": "接続数",
+        "workers": "ワーカー"
+      },
+      "units": {
+        "req": "req/s",
+        "query": "クエリ/s",
+        "op": "ops/s"
+      },
+      "unitsShort": {
+        "req": "req/s",
+        "query": "q/s",
+        "op": "ops/s"
+      },
+      "bottleneckBadge": "ボトルネック",
+      "diagramLabel": "アーキテクチャ図。コンポーネントをクリックすると詳細を表示し、薄く表示されたものをクリックすると追加します。",
       "metrics": "メトリクス",
-      "maxRps": "最大処理可能RPS",
-      "bottleneck": "ボトルネック",
-      "latency": "レイテンシ（p50 / p99）",
-      "errorRate": "エラー率",
-      "underConstruction": "開発中 — シミュレーションエンジンは次のステップで実装予定です。",
-      "loading": "シミュレーターを読み込み中…"
+      "m": {
+        "traffic": "トラフィック",
+        "maxRps": "最大処理能力",
+        "headroom": "余裕 {x}倍",
+        "overCapacity": "処理能力を {x}% 超過",
+        "bottleneck": "ボトルネック",
+        "bottleneckHint": "トラフィック増加時に最初に飽和する箇所",
+        "none": "なし",
+        "latency": "レイテンシ（平均 / p99）",
+        "errorRate": "エラー率",
+        "served": "{rps} req/s が成功",
+        "timeout": "タイムアウト"
+      },
+      "details": {
+        "title": "なぜ？",
+        "perInstance": "インスタンスあたり",
+        "instances": "{n} インスタンス",
+        "load": "負荷",
+        "capacity": "処理能力",
+        "utilization": "使用率",
+        "latency": "処理時間（平均 / p99）",
+        "limits": "制約となるリソース",
+        "limiting": "上限",
+        "cdn": "CDNはキャッシュ済みのリクエストをユーザーの近くで返すため、サーバーには届きません。ここでは無制限として扱います。",
+        "hint": "図のコンポーネントをクリックすると、数値の計算方法が表示されます。"
+      },
+      "formulas": {
+        "app": {
+          "cpu": "min({workers} ワーカー, {vcpu} vCPU) × 1000 / {cpuMs} ms",
+          "network": "{netGbps} Gbps / レスポンス {responseKB} KB",
+          "ramAsync": "({usableMB} MB − {workers} ワーカー × {workerMemMB} MB) / {memMB} MB = 同時 {concurrency} 件、各 {inFlightMs} ms",
+          "ramSync": "{usableMB} MB / (ワーカーあたり {workerMemMB} + {memMB} MB) = {fit} ワーカーが収まる、1リクエスト {inFlightMs} ms",
+          "workers": "{workers} ワーカー、各1リクエスト、1リクエスト {inFlightMs} ms"
+        },
+        "lb": {
+          "throughput": "定格 {maxRps} req/s"
+        },
+        "cache": {
+          "ops": "定格 {maxOps} ops/s（シングルスレッド）"
+        },
+        "db": {
+          "cpu": "{vcpu} vCPU × 1000 / {queryMs} ms",
+          "connections": "min(最大 {maxConnections}, {servers} × {workers} × {poolSize} = {opened} 接続) × 1000 / {queryMs} ms"
+        }
+      },
+      "warnings": {
+        "lbRequired": "ロードバランサーがないため、{count} 台中 1 台のサーバーにしかトラフィックが届きません。",
+        "connectionsExceeded": "{servers} 台 × {workers} ワーカー × {pool} 接続 = {needed} ですが、データベースの上限は {max} です。超過分の接続は拒否されます。",
+        "idleCores": "{vcpu} vCPU のうち {workers} つしか使われていません。各ワーカープロセスは一度に1つのコアで動くためです。残りを使うにはワーカーを増やしてください。",
+        "workersDontFit": "{workers} ワーカーのうち、{ramGB} GB のRAMに収まるのは {fit} つだけです。残りはメモリ不足で強制終了されます。"
+      },
+      "presetList": {
+        "oneVps": {
+          "name": "VPS 1台",
+          "desc": "アプリサーバーとデータベースが1台ずつ。1リクエストで3回クエリを実行するため、約 167 req/s でデータベースのCPUが先に限界に達します。"
+        },
+        "addCache": {
+          "name": "キャッシュ追加",
+          "desc": "読み取りの85%をキャッシュが返すため、データベースの負荷が約4分の1になります。ボトルネックはアプリサーバーのCPUに移ります。"
+        },
+        "scaleOut": {
+          "name": "スケールアウト",
+          "desc": "ロードバランサーで4台のサーバーに分散。アプリ層は 800 req/s を処理できるため、再びデータベースが上限になります。"
+        },
+        "readReplicas": {
+          "name": "リードレプリカ",
+          "desc": "2台のレプリカが読み取りを担当しますが、各レプリカはすべての書き込みも反映します。プライマリは書き込みのみになり、レプリカが上限になります。"
+        },
+        "blackFriday": {
+          "name": "ブラックフライデー",
+          "desc": "トラフィックが5倍に急増し、多くのリクエストが失敗します。CDN、サーバー追加、レプリカ追加で乗り切ってみましょう。"
+        }
+      },
+      "serverTypes": {
+        "async": {
+          "name": "非同期",
+          "desc": "各ワーカーが多数のリクエストを並行して扱います（Node.js、非同期コードのFastAPI）。"
+        },
+        "sync": {
+          "name": "同期",
+          "desc": "各ワーカーは一度に1つのリクエストを処理します（Gunicornのsyncワーカー、PHP-FPM、Unicorn）。"
+        }
+      },
+      "maxFit": "RAMに収まる最大数：{n}",
+      "noneFit": "RAMにワーカーが1つも収まりません",
+      "useMax": "最大にする",
+      "useMaxAria": "ワーカー数をRAMに収まる最大の {n} にする",
+      "recommended": {
+        "async": "コアごとに1つ：{n}",
+        "sync": "Gunicornの目安（2 × コア数）＋ 1：{n}"
+      },
+      "useRecommended": "使う",
+      "useRecommendedAria": "ワーカー数を推奨値の {n} にする"
     }
   }
 }
