@@ -4,8 +4,7 @@ description: Build a simple architecture — servers, load balancer, cache, data
 image: /tools/capacity-sim/thumb.svg
 lang: en
 order: 1
-updatedDate: 2026-10-03
-inProgress: true
+updatedDate: 2026-10-04
 tags: ['System Design', 'Visualization', 'Vue 3', 'TypeScript']
 component: capacity-sim
 ---
@@ -17,6 +16,8 @@ component: capacity-sim
 - [Parameters explained](#parameters-explained)
   - [CDN](#cdn)
     - [Served at the edge](#served-at-the-edge)
+  - [Load balancer](#load-balancer)
+    - [Max throughput](#max-throughput)
   - [App server](#app-server)
     - [Servers](#servers)
     - [Server type](#server-type)
@@ -83,6 +84,42 @@ A **content delivery network** is a network of servers spread around the world, 
 The share of all requests the CDN answers without contacting your servers. It depends on how much of your traffic is cacheable and how often the same content is requested: a mostly static marketing site can reach 95% or more, while an app whose responses are mostly personalized might be well under 10%.
 
 In the simulator, this share is removed from the traffic before it reaches the load balancer, and each edge hit takes a fixed 15 ms. The CDN itself is treated as having unlimited capacity, since providers run very large networks. Misses continue to the load balancer as normal.
+
+### Load balancer
+
+A load balancer sits in front of your app servers and spreads incoming requests across them. Clients only ever see one address, so you can add, remove or replace servers behind it without anyone noticing. Without one, clients can only reach a single server, which is why the simulator only lets you add servers once the load balancer is on.
+
+##### Layer 7 vs layer 4
+
+Load balancers come in two main kinds, named after the network layer they work at:
+
+- **Layer 7 (application):** understands HTTP. It handles the HTTPS connection, reads each request, and can route by URL path, hostname or headers, for example sending `/api/*` to the API servers and everything else to the website. Most web apps use this kind.
+- **Layer 4 (network):** only sees IP addresses and ports, and passes connections through without reading them. That makes it faster and able to handle far more traffic, and it works for any protocol, not just HTTP (game servers, MQTT, databases). But it can't route by URL.
+
+| Cloud | Layer 7 (HTTP) | Layer 4 (TCP/UDP) |
+| --- | --- | --- |
+| AWS | Application Load Balancer (ALB) | Network Load Balancer (NLB) |
+| Google Cloud | Cloud Load Balancing, Application Load Balancer type | Cloud Load Balancing, Network Load Balancer type |
+| Azure | Application Gateway | Azure Load Balancer |
+
+On AWS, these all belong to the **Elastic Load Balancing (ELB)** family, which the diagram's icon represents. The family also includes the Gateway Load Balancer, for routing traffic through security appliances such as firewalls, and the Classic Load Balancer: the original 2009 product, simply called "ELB" before the others existed, and now legacy. The simulator's load balancer spreads HTTP requests across app servers, which is the ALB's job, so the Google Cloud and Azure options in the diagram show their layer 7 equivalents.
+
+##### Important things to know
+
+- **Health checks:** the load balancer regularly calls each server, for example `GET /health`, and stops sending traffic to any server that fails, until it recovers. This is what makes a crashed server invisible to users, as long as the others have room. A good health check is cheap but checks the essentials, like the database connection.
+- **How it picks a server:** **round robin** simply takes turns, but ignores how busy each server is. **Least outstanding requests** (least connections on some load balancers) sends each request to the server with the fewest requests in progress, which works better when some requests are much slower than others.
+- **Keep app servers stateless:** any request can land on any server, so don't keep sessions or uploaded files in one server's memory or disk. Store sessions in the cache or database, and files in object storage such as Amazon S3. **Sticky sessions**, which pin a user to one server with a cookie, work around this, but they spread load unevenly and lose the session when that server goes away.
+- **HTTPS handled at the load balancer:** a layer 7 load balancer usually decrypts HTTPS using free managed certificates (such as from AWS Certificate Manager), so app servers receive plain HTTP inside your private network and don't spend CPU on encryption.
+- **Connection draining:** when a server is removed, during a deploy or when scaling in, the load balancer stops sending it new requests but lets the ones in progress finish (the ALB waits up to 300 seconds by default). That's what makes zero-downtime deploys possible.
+- **Several data centers at once:** managed load balancers run in multiple availability zones and send traffic to servers in all of them, so one data center failing doesn't take your app down. They aren't a single point of failure.
+- **Autoscaling:** with an Auto Scaling group (or the equivalent on other clouds), new servers register with the load balancer automatically as traffic grows, and are drained and removed when it falls.
+- **Timeouts:** the load balancer gives up on requests that take too long (the ALB's default idle timeout is 60 seconds). Long-running work such as generating a big report should run in the background instead of holding a request open.
+
+#### Max throughput
+
+The most requests per second the load balancer can handle before it becomes the bottleneck. Managed cloud load balancers scale themselves automatically and handle very high traffic, so they're rarely the limit in practice. A self-hosted one, such as Nginx or HAProxy on a single virtual machine, is limited by that machine. Even managed ones take a little time to scale up, so an enormous sudden spike can briefly outrun them; AWS lets you reserve capacity ahead of a planned event.
+
+In the simulator, the load balancer adds 0.5 ms to each request, splits traffic evenly between the app servers, and is only limited by this setting. Without it, only one app server can receive traffic.
 
 ### App server
 

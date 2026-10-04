@@ -18,7 +18,7 @@ import gcpApp from '../icons/gcp/ComputeEngine.svg?url';
 import gcpCache from '../icons/gcp/Memorystore.svg?url';
 import gcpDb from '../icons/gcp/CloudSQL.svg?url';
 import azureCdn from '../icons/azure/FrontDoor.svg?url';
-import azureLb from '../icons/azure/LoadBalancer.svg?url';
+import azureLb from '../icons/azure/ApplicationGateway.svg?url';
 import azureApp from '../icons/azure/VirtualMachines.svg?url';
 import azureCache from '../icons/azure/ManagedRedis.svg?url';
 import azureDb from '../icons/azure/DatabasePostgreSQL.svg?url';
@@ -52,7 +52,7 @@ export const SERVICES: Record<Provider, Record<ServiceSlot, CloudService>> = {
   },
   azure: {
     cdn: { icon: azureCdn, name: 'Azure Front Door' },
-    lb: { icon: azureLb, name: 'Azure Load Balancer' },
+    lb: { icon: azureLb, name: 'Azure Application Gateway' },
     app: { icon: azureApp, name: 'Azure Virtual Machines' },
     cache: { icon: azureCache, name: 'Azure Managed Redis' },
     db: { icon: azureDb, name: 'Azure Database for PostgreSQL' },
