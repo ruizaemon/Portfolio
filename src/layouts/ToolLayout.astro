@@ -3,6 +3,8 @@ import BaseLayout from './BaseLayout.astro';
 import { t } from '@/utils/i18n';
 import { tagColor } from '@/utils/projectTags';
 import LastUpdated from '@/components/main/LastUpdated.astro';
+// Styles and fonts for the typeset formulas in tool write-ups ($…$ and $$…$$)
+import 'katex/dist/katex.min.css';
 
 interface Props {
   frontmatter: {
@@ -371,24 +373,26 @@ const tags = frontmatter.tags ?? [];
     font-size: inherit;
   }
 
-  /* Formulas are written as blockquotes in the markdown ("> `a = b / c`") */
-  .tool-content :global(blockquote) {
-    display: table;
+  /* Display formulas ($$…$$ in the markdown, typeset by KaTeX): a tinted box
+     with a green edge, scrolling sideways if a long one doesn't fit */
+  .tool-content :global(.katex-display) {
+    width: fit-content;
+    max-width: 100%;
     margin: 0 0 1.5rem;
-    padding: 0.5em 0.9em;
+    padding: 0.75em 1.1em;
+    overflow-x: auto;
+    overflow-y: hidden;
     border-left: 3px solid var(--color-primary);
     border-radius: 0 6px 6px 0;
-    background-color: rgba(0, 255, 153, 0.1);
+    background-color: color-mix(in srgb, var(--color-primary) 8%, transparent);
   }
 
-  .tool-content :global(blockquote p) {
-    margin: 0;
+  .tool-content :global(.katex-display > .katex) {
+    text-align: left;
   }
 
-  .tool-content :global(blockquote code) {
-    background: none;
-    padding: 0;
-    font-size: 0.95em;
+  .tool-content :global(.katex) {
+    font-size: 1.1em;
   }
 
   .tool-content :global(table) {

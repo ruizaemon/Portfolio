@@ -101,12 +101,22 @@ export interface NodeResult {
 }
 
 /** Traffic along one edge of the diagram (total across instances). */
+/**
+ * What travels along an edge: client requests, read or write queries (or both),
+ * or the writes a primary streams to its replicas to keep them in sync.
+ */
+export type FlowKind = 'request' | 'read' | 'write' | 'readWrite' | 'replication';
+
 export interface Flow {
   from: 'clients' | NodeId;
   to: NodeId;
-  /** Load per second arriving at `to` over this edge. */
+  kind: FlowKind;
+  /** Load per second travelling over this edge to `to`. */
   rate: number;
-  /** Share of that load `to` can't handle (0–1). */
+  /** For `readWrite` edges: how the rate splits into reads and writes. */
+  reads?: number;
+  writes?: number;
+  /** Share of the load arriving at `to` that it can't handle (0–1). */
   dropShare: number;
 }
 

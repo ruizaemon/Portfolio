@@ -223,7 +223,13 @@
         "sync": "Gunicorn guideline, (2 × cores) + 1: {n}"
       },
       "useRecommended": "Use",
-      "useRecommendedAria": "Set workers to the recommended {n}"
+      "useRecommendedAria": "Set workers to the recommended {n}",
+      "flowKinds": {
+        "read": "(read)",
+        "write": "(write)",
+        "replication": "(replication)"
+      },
+      "turnOff": "Turn off {name}"
     }
   }
 }

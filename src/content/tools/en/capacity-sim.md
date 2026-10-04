@@ -32,7 +32,11 @@ component: capacity-sim
     - [Max connections](#max-connections)
     - [Read replicas](#read-replicas)
   - [What if many requests arrive at once?](#what-if-many-requests-arrive-at-once)
-- [How it works](#how-it-works)
+- [Key concepts](#key-concepts)
+  - [Max sustainable and the bottleneck](#max-sustainable-and-the-bottleneck)
+  - [Time here: why requests wait before 100%](#time-here-why-requests-wait-before-100)
+  - [End-to-end latency](#end-to-end-latency)
+  - [Past 100%: errors and timeouts](#past-100-errors-and-timeouts)
 - [Assumptions](#assumptions)
 
 </nav>
@@ -81,13 +85,17 @@ All 4 requests are in progress at once, but only 2 are using a core at any momen
 
 **The most requests the workers can handle.** A sync worker is tied up for a request's whole time in flight, so the workers can only get through so many requests per second:
 
-> `max req/s from workers = workers / time each request is in flight (in seconds)`
+$$
+\text{max req/s from workers} = \dfrac{\text{workers}}{\text{time each request is in flight (s)}}
+$$
 
 One worker that's busy for 22 ms per request finishes 1000 / 22 ≈ **45 requests per second**, so 4 workers can handle at most **182**. Your traffic per server needs to stay below that, as with every maximum in the simulator. If requests arrive faster than the workers can finish them, the extra ones wait in line for a free worker, latency climbs, and eventually requests time out. The WORK bar on the app server shows how close you are.
 
 **How many workers is right?** Enough to keep every core busy while other workers wait on the database:
 
-> `workers needed ≈ cores × time in flight / CPU time per request (both in ms)`
+$$
+\text{workers needed} \approx \text{cores} \times \dfrac{\text{time in flight (ms)}}{\text{CPU time per request (ms)}}
+$$
 
 With the defaults, that's 2 × 22 / 10 ≈ 4.4, so about 5. It matches Gunicorn's guideline of (2 × cores) + 1, because these requests spend about half their time waiting. The longer requests wait compared with using the CPU, the more workers you need.
 
@@ -102,7 +110,9 @@ With the defaults, that's 2 × 22 / 10 ≈ 4.4, so about 5. It matches Gunicorn'
 
 A virtual CPU core, the unit cloud providers sell compute in. Each core can work on one thing at a time, and it has 1,000 ms of working time every second. A worker process uses one core at a time, so the cores that can actually be used are the smaller of workers and vCPU. That gives the most requests per second the CPU can handle:
 
-> `max req/s from CPU = min(workers, vCPU) × 1000 / CPU time per request (in ms)`
+$$
+\text{max req/s from CPU} = \dfrac{\min(\text{workers},\ \text{vCPU}) \times 1000}{\text{CPU time per request (ms)}}
+$$
 
 If a request needs 10 ms of CPU, one core can finish 1000 / 10 = **100 requests per second**, and 2 cores with 2 workers can finish **200**. Past that point, requests arrive faster than the cores can work through them, so a queue builds up. More cores also mean less waiting before that point: with several cores, a new request is more likely to find one free.
 
@@ -128,25 +138,39 @@ These are rough figures. Compiled languages like Go or Java usually sit at the l
 
 The OS keeps about 10% of the server's RAM. The rest is shared by the worker processes and the requests they're handling. Each worker has a fixed base (**Memory / worker**), and each request in progress holds a bit more on top (**Memory / request**):
 
-> `memory used ≈ workers × memory per worker + requests in flight × memory per request`
+$$
+\text{memory used} \approx \text{workers} \times \text{memory per worker} + \text{requests in flight} \times \text{memory per request}
+$$
 
 How that limits the server depends on the server type.
 
 **Async server.** The workers' base is paid once, and whatever is left over holds requests in progress:
 
-> `requests in flight = (RAM × 90% − workers × memory per worker) / memory per request`
+$$
+\text{requests in flight} = \dfrac{\text{RAM} \times 90\% - \text{workers} \times \text{memory per worker}}{\text{memory per request}}
+$$
 
 That's how many requests fit in memory at once, not how many per second. To turn it into a rate, the simulator uses **Little's law**: if each request stays in flight for a certain time, then
 
-> `max req/s from RAM = requests in flight / time each request is in flight (in seconds)`
+$$
+\text{max req/s from RAM} = \dfrac{\text{requests in flight}}{\text{time each request is in flight (s)}}
+$$
 
 A request stays in flight for its CPU time **plus** the time it waits on the cache and database. With the defaults, (3,686 MB − 2 × 100 MB) / 100 KB ≈ 34,900 requests fit at once. Each stays about 22 ms (10 ms of CPU plus three 4 ms queries), so 34,900 / 0.022 s ≈ **1.6 million requests per second**. On an async server, memory is almost never the limit.
 
 **Sync server.** Every request in progress needs a whole worker, and each worker holds its base memory plus its one request. So RAM decides how many workers fit:
 
-> `workers that fit = RAM × 90% / (memory per worker + memory per request)`
+$$
+\text{workers that fit} = \dfrac{\text{RAM} \times 90\%}{\text{memory per worker} + \text{memory per request}}
+$$
 
-Each worker serves one request at a time, so Little's law turns that into a rate the same way: `max req/s from RAM = workers that fit / time each request is in flight (in seconds)`. With 4 GB, 100 MB workers and 50 MB requests, 3,686 / 150 ≈ 24 workers fit, so 24 / 0.022 s ≈ **1,090 requests per second**. If you set more workers than fit, the extra ones would be killed for running out of memory, and the simulator warns you.
+Each worker serves one request at a time, so Little's law turns that into a rate the same way:
+
+$$
+\text{max req/s from RAM} = \dfrac{\text{workers that fit}}{\text{time each request is in flight (s)}}
+$$
+
+With 4 GB, 100 MB workers and 50 MB requests, 3,686 / 150 ≈ 24 workers fit, so 24 / 0.022 s ≈ **1,090 requests per second**. If you set more workers than fit, the extra ones would be killed for running out of memory, and the simulator warns you.
 
 Either way, slow database queries hurt app servers too: requests stay in flight longer, so fewer get through with the same memory or workers.
 
@@ -264,7 +288,9 @@ Because nothing caps tasks by default, an overloaded worker keeps accepting requ
 
 The server's bandwidth, in gigabits per second. Every response has to be sent over it:
 
-> `max req/s from network = bandwidth in bytes per second / response size`
+$$
+\text{max req/s from network} = \dfrac{\text{bandwidth (bytes per second)}}{\text{response size (bytes)}}
+$$
 
 1 Gbps is 125,000,000 bytes per second. With 40 KB responses, that's 125,000,000 / 40,000 = **3,125 requests per second**. Large responses such as images or files make network the limit quickly, which is a big reason to put a CDN in front.
 
@@ -290,7 +316,9 @@ How many database connections each worker process keeps open. A request needs a 
 
 So the totals multiply:
 
-> `connections opened = servers × workers × connections per worker`
+$$
+\text{connections opened} = \text{servers} \times \text{workers} \times \text{connections per worker}
+$$
 
 These count against the database's **Max connections** below. Adding servers or workers can quietly use up all of the database's connections, a common surprise when scaling out.
 
@@ -314,7 +342,9 @@ One thing to watch in FastAPI: a database session per request can hold its conne
 
 The pool size is set in your database library, for example SQLAlchemy's `pool_size` and `max_overflow`, asyncpg's `max_size`, or node-postgres's `max`. Defaults are usually 5–10 per process, and many teams read the value from an environment variable. Because every worker has its own pool, the total has to fit within the database's limit:
 
-> `servers × workers × (pool size + overflow) < database max connections`
+$$
+\text{servers} \times \text{workers} \times (\text{pool size} + \text{overflow}) < \text{database max connections}
+$$
 
 PostgreSQL allows 100 connections by default, so 4 servers × 4 workers × 15 is 240, already far over. Leave some room for migrations and admin tools too. If the total grows too large, a connection pooler such as PgBouncer can sit in front of the database: workers connect to it cheaply, and it shares a much smaller set of real database connections.
 
@@ -322,7 +352,9 @@ PostgreSQL allows 100 connections by default, so 4 servers × 4 workers × 15 is
 
 The database's load is counted in **queries** per second, not requests. Each request that reaches it makes several queries (set by **DB queries / request** under Traffic):
 
-> `database load = (reads that miss the cache + writes) × queries per request`
+$$
+\text{database load} = (\text{reads that miss the cache} + \text{writes}) \times \text{queries per request}
+$$
 
 With 100 requests per second, no cache and 3 queries each, the database gets 100 × 3 = **300 queries per second**.
 
@@ -330,7 +362,9 @@ With 100 requests per second, no cache and 3 queries each, the database gets 100
 
 The same idea as on the app server. The simulator treats each query as CPU work, so:
 
-> `max queries/s from CPU = vCPU × 1000 / query time (in ms)`
+$$
+\text{max queries/s from CPU} = \dfrac{\text{vCPU} \times 1000}{\text{query time (ms)}}
+$$
 
 2 vCPU with 4 ms queries gives 2 × 1000 / 4 = **500 queries per second**. At 3 queries per request, that's about 167 requests per second, which is why the database is the first thing to break in the One VPS scenario.
 
@@ -362,11 +396,15 @@ Keep in mind that the simulator counts all of the query time as database CPU. Sl
 
 The most connections the database accepts at once. Only connections that servers actually open can be used, so:
 
-> `usable connections = the smaller of max connections and servers × workers × connections per worker`
+$$
+\text{usable connections} = \min(\text{max connections},\ \text{servers} \times \text{workers} \times \text{connections per worker})
+$$
 
 Each connection runs one query at a time, so:
 
-> `max queries/s from connections = usable connections × 1000 / query time (in ms)`
+$$
+\text{max queries/s from connections} = \dfrac{\text{usable connections} \times 1000}{\text{query time (ms)}}
+$$
 
 With 1 server running 2 workers, each worker has its own separate pool of 10 (pools can't be shared between processes), so that's 20 connections in total, and 20 × 1000 / 4 = **5,000 queries per second**. Because this model treats query time as pure CPU time, connections only become the tighter limit when there are fewer usable connections than vCPUs. In real databases, queries also wait on disk and locks, so connections tend to run out sooner. If servers ask for more connections than the database allows, the simulator warns you, because in practice those extra connections would be refused.
 
@@ -374,9 +412,13 @@ With 1 server running 2 workers, each worker has its own separate pool of 10 (po
 
 Copies of the database that take over read queries. Reads are split evenly across replicas, and the primary only handles writes. The catch: every replica has to apply every write to stay in sync, so
 
-> `load on each replica = reads / replicas + all writes`
+$$
+\text{load on each replica} = \dfrac{\text{reads}}{\text{replicas}} + \text{all writes}
+$$
 
 Replicas help read-heavy apps a lot, and write-heavy apps very little.
+
+In the diagram, the line from the app server to the replicas carries only the reads the app sends. Replication doesn't go through the app: the primary streams its writes straight to each replica, shown as the dashed line between them. For example, with 270 writes per second and 2 replicas, that line carries 2 × 270 = 540 queries per second.
 
 ### What if many requests arrive at once?
 
@@ -405,15 +447,76 @@ Exactly simultaneous is rare, but large bursts within a second or two are common
 
 For a small personal site, 1,000 at once is unlikely. For a popular app, bursts like this are routine, which is why queues, rate limits and autoscaling exist.
 
-## How it works
+## Key concepts
 
-Each component has a capacity set by its tightest resource: CPU, memory, network, connections, or a rated throughput. The simulator works out how much traffic reaches each one after CDN hits, cache hits and the read/write split, then compares that load with its capacity.
+These are the ideas behind the numbers in the metrics panel and the **Why?** panel. Click any component in the diagram to see its formulas with your numbers plugged in.
 
-- **Max sustainable** is the traffic level where the first component hits 100%. Load on every component grows in proportion to traffic, so this is simply capacity / load per request for each component, and the smallest wins.
-- **Latency** comes from queueing theory (an M/M/c model per component). It barely moves at low load, then climbs steeply as a component nears 100%, which is why systems feel fine right up until they don't.
-- **Memory** limits an app server through Little's law: the number of requests it can hold at once, divided by how long each one stays in flight. Slow database queries keep requests in flight longer, so they eat memory too.
+### Max sustainable and the bottleneck
 
-Click any component in the diagram to see its formulas with your numbers plugged in.
+Each component's load grows in step with traffic: double the requests, and the app servers, cache and database all get twice the work. So for each component, the simulator works out how much load one request puts on it (after CDN hits, cache hits and the read/write split) and divides its capacity by that:
+
+$$
+\text{max sustainable traffic for a component} = \dfrac{\text{its capacity}}{\text{its load per request}}
+$$
+
+The smallest result is **Max sustainable**, and that component is the **bottleneck**: the first one to hit 100% as traffic grows. In One VPS, the app server can handle 200 req/s, but the database can handle 500 queries/s and every request makes 3 queries, so it tops out at 500 / 3 ≈ **167 req/s**. The database is the bottleneck.
+
+### Time here: why requests wait before 100%
+
+**Time here** in the Why? panel is how long a request spends at one component: the work itself, plus any time spent waiting in line. Requests don't arrive evenly spaced. They arrive at random, so sometimes several land close together and have to wait for a free core, even when the component is far from full.
+
+The simulator works this out with the standard queueing model for several servers sharing one line (M/M/c, using the Erlang C formula). Take the app server in One VPS: 100 req/s arriving at 2 cores that can handle 200 req/s between them, so it's 50% busy.
+
+- **1 in 3** requests arrives while both cores are busy and has to wait.
+- Those that wait, wait 1 / (200 − 100) s = **10 ms** on average, so the average wait across all requests is about **3.3 ms**.
+- Average time here = 10 ms of CPU + 3.3 ms of waiting ≈ **13 ms**.
+
+The **p99** is the time that 99% of requests beat. Waiting has a long tail, and the slowest 1% wait about 35 ms. The simulator also assumes their work takes twice the average, 20 ms, so the p99 is about 20 + 35 = **55 ms**.
+
+**The exact formulas.** For a component that receives load λ and can handle at most μ (both per second), working on c requests at once:
+
+$$
+\text{average time here} = \text{work time} + \dfrac{P(\text{wait})}{\mu - \lambda}
+$$
+
+$$
+\text{p99 time here} = 2 \times \text{work time} + \dfrac{\ln\big(P(\text{wait}) / 0.01\big)}{\mu - \lambda}
+$$
+
+The waiting part of the p99 is 0 when P(wait) is 1% or less. P(wait), the chance that a request has to wait at all, comes from the Erlang C formula, with $a = \lambda / (\mu / c)$:
+
+$$
+P(\text{wait}) = \dfrac{X}{\displaystyle\sum_{k=0}^{c-1} \frac{a^k}{k!} + X} \qquad \text{where} \qquad X = \dfrac{a^c}{c!} \cdot \dfrac{c}{c - a}
+$$
+
+For 2 slots, this simplifies to $a^2 / (2 + a)$. The terms mean:
+
+- **Work time:** the component's own time per visit. That's the CPU time per request on an app server, the query time on a database, and the rated latency of the cache or load balancer.
+- **c:** how many requests it can work on at once. That's the cores in use on an async app server, the workers on a sync one, the vCPUs on the database, and 1 for the single-threaded cache and the load balancer.
+- **μ − λ:** the spare capacity. Dividing by it gives seconds, so multiply by 1,000 for milliseconds.
+- At or above 100% (λ ≥ μ), the queue never drains, so time here is shown as the 10-second timeout.
+
+Plugging in One VPS: a = 100 / (200 / 2) = 1, so P(wait) = 1² / (2 + 1) = 1/3. The average is 10 ms + (1/3) / 100 s = 10 + 3.3 ≈ **13 ms**, and the p99 is 20 ms + ln(33.3) / 100 s = 20 + 35 ≈ **55 ms**.
+
+The waiting grows very quickly as a component gets busier. For the same app server:
+
+| App server load | Average time here | p99 time here |
+| --- | --- | --- |
+| 50% (100 req/s) | **13 ms** | **55 ms** |
+| 80% (160 req/s) | **28 ms** | **127 ms** |
+| 95% (190 req/s) | **103 ms** | **473 ms** |
+
+This is why systems feel fine right up until they don't, and why it's wise to keep components well below 100%, often under 70–80%.
+
+### End-to-end latency
+
+The **Latency** figures in the metrics panel add up the time at every component a request passes through. Requests take different paths: some are answered by the CDN, some by the cache, and others go all the way to the database. The average is weighted by how many requests take each path.
+
+In One VPS, every request goes through the app server and makes 3 database queries, so the average is 13 ms + 3 × 6.3 ms ≈ **32 ms**. For the p99, the simulator adds up the p99 of each component along the path, assuming only one of the 3 queries hits its slow tail: 55 ms + 2 × 6.3 ms + 27 ms ≈ **95 ms**. Adding up p99s is a cautious estimate, since one request rarely hits the slow tail everywhere at once.
+
+### Past 100%: errors and timeouts
+
+When more traffic reaches a component than it can handle, the simulator lets it handle as much as its capacity allows and counts the rest as failed. That's the **Errors** figure, and **req/s succeed** shows what still gets through. The requests that do get in are stuck behind an ever-growing queue, so latency is shown as a timeout (10 seconds). Real systems behave much the same way: queues fill, requests time out, and clients start retrying, which adds even more load.
 
 ## Assumptions
 

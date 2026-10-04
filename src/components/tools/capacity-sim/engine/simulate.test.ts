@@ -52,6 +52,31 @@ describe('simulate', () => {
     expect(r.nodes.dbReplica!.instances).toBe(2);
   });
 
+  it('draws replication as its own flow from the primary to the replicas', () => {
+    const cfg = presetConfig('readReplicas');
+    cfg.cache.enabled = false;
+    const r = simulate(cfg);
+    const flow = (from: string, to: string) => r.flows.find((f) => f.from === from && f.to === to)!;
+    // 900 req/s × 3 queries: 2,430 reads to the replicas, 270 writes to the primary
+    expect(flow('app', 'dbReplica').kind).toBe('read');
+    expect(flow('app', 'dbReplica').rate).toBeCloseTo(2430);
+    expect(flow('app', 'dbPrimary').kind).toBe('write');
+    expect(flow('app', 'dbPrimary').rate).toBeCloseTo(270);
+    // Each of the 2 replicas replays all 270 writes
+    expect(flow('dbPrimary', 'dbReplica').kind).toBe('replication');
+    expect(flow('dbPrimary', 'dbReplica').rate).toBeCloseTo(540);
+    expect(r.nodes.dbReplica!.offered).toBeCloseTo(2430 / 2 + 270);
+  });
+
+  it('splits reads and writes on the primary when there are no replicas', () => {
+    const r = simulate(presetConfig('oneVps'));
+    const f = r.flows.find((x) => x.to === 'dbPrimary')!;
+    expect(f.kind).toBe('readWrite');
+    expect(f.rate).toBeCloseTo(300);
+    expect(f.reads).toBeCloseTo(270);
+    expect(f.writes).toBeCloseTo(30);
+  });
+
   it('reports errors and timeouts past capacity', () => {
     const cfg = presetConfig('oneVps');
     cfg.traffic.rps = 1000;

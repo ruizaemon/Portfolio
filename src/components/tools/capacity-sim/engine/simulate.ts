@@ -209,6 +209,9 @@ interface FlowPass {
   /** Total load arriving at each node (all instances). */
   offered: Partial<Record<NodeId, number>>;
   served: Partial<Record<NodeId, number>>;
+  /** Read and write queries per second sent to the database tier. */
+  readQueries: number;
+  writeQueries: number;
   /** Requests per second that complete successfully. */
   success: number;
 }
@@ -263,7 +266,13 @@ function runFlow(
   }
 
   const readSuccess = reads * cacheOk * (d.cacheHit + (1 - d.cacheHit) * readDbOk);
-  return { offered, served, success: edgeHits + readSuccess + writes * writeOk };
+  return {
+    offered,
+    served,
+    readQueries,
+    writeQueries,
+    success: edgeHits + readSuccess + writes * writeOk,
+  };
 }
 
 function nodeLatency(s: NodeSpec, perInstance: number): { avg: number; p99: number } {
@@ -366,19 +375,42 @@ export function simulate(cfg: SimConfig): SimResult {
   ];
 
   const flows: Flow[] = [];
-  const addFlow = (from: Flow['from'], to: NodeId) => {
-    const rate = actual.offered[to] ?? 0;
-    const handled = actual.served[to] ?? 0;
-    flows.push({ from, to, rate, dropShare: rate > 0 ? 1 - handled / rate : 0 });
+  /** Share of the load arriving at a node that it can't handle. */
+  const dropShare = (to: NodeId) => {
+    const arriving = actual.offered[to] ?? 0;
+    return arriving > 0 ? 1 - (actual.served[to] ?? 0) / arriving : 0;
   };
+  const addFlow = (
+    from: Flow['from'],
+    to: NodeId,
+    kind: Flow['kind'],
+    rate = actual.offered[to] ?? 0,
+  ) => flows.push({ from, to, kind, rate, dropShare: dropShare(to) });
+
   const chain: Flow['from'][] = ['clients'];
   if (specs.cdn) chain.push('cdn');
   if (specs.lb) chain.push('lb');
   chain.push('app');
-  for (let i = 1; i < chain.length; i++) addFlow(chain[i - 1], chain[i] as NodeId);
-  if (specs.cache) addFlow('app', 'cache');
-  addFlow('app', 'dbPrimary');
-  if (specs.dbReplica) addFlow('app', 'dbReplica');
+  for (let i = 1; i < chain.length; i++) addFlow(chain[i - 1], chain[i] as NodeId, 'request');
+  if (specs.cache) addFlow('app', 'cache', 'read');
+  const { readQueries, writeQueries } = actual;
+  if (specs.dbReplica) {
+    // The app sends writes to the primary and reads to the replicas; the primary
+    // then streams every write to every replica to keep them in sync
+    addFlow('app', 'dbPrimary', 'write', writeQueries);
+    addFlow('app', 'dbReplica', 'read', readQueries);
+    addFlow('dbPrimary', 'dbReplica', 'replication', writeQueries * d.replicas);
+  } else {
+    flows.push({
+      from: 'app',
+      to: 'dbPrimary',
+      kind: 'readWrite',
+      rate: readQueries + writeQueries,
+      reads: readQueries,
+      writes: writeQueries,
+      dropShare: dropShare('dbPrimary'),
+    });
+  }
 
   const warnings: SimWarning[] = [];
   if (!cfg.lb.enabled && cfg.app.count > 1) {

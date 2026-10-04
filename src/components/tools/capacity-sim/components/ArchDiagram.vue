@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import type { NodeId, SimConfig, SimResult } from '../engine/model';
+import type { Flow, NodeId, SimConfig, SimResult } from '../engine/model';
 import {
   curvePath,
   edgeCurve,
@@ -48,7 +48,11 @@ interface NodeView {
   bars: { key: string; label: string; util: number; level: string }[];
   bottleneck: boolean;
   saturated: boolean;
+  /** Can be switched off from the diagram (CDN, load balancer, cache, replicas). */
+  optional: boolean;
 }
+
+const OPTIONAL: DiagramNodeId[] = ['cdn', 'lb', 'cache', 'dbReplica'];
 
 function subtitle(id: DiagramNodeId): string {
   const c = props.config;
@@ -90,31 +94,69 @@ const nodes = computed<NodeView[]>(() =>
       })),
       bottleneck: props.result.bottleneck?.node === id,
       saturated: !!result?.saturated,
+      optional: OPTIONAL.includes(id),
     };
   }),
 );
 
-function kindOf(to: NodeId): ParticleKind {
-  if (to === 'cache') return 'cache';
-  if (to === 'dbPrimary' || to === 'dbReplica') return 'db';
-  return 'request';
+function particleKind(f: Flow): ParticleKind {
+  if (f.to === 'cache') return 'cache';
+  return f.kind === 'request' ? 'request' : 'db';
 }
 
 /**
- * Where an edge's rate label goes. Request-chain labels sit just after the
- * source (the gap between columns is always free); data-tier edges share a
- * start point, so theirs go near the target instead.
+ * Text for an edge's label, one string per line. Database traffic says what it
+ * is, e.g. "2.4K q/s (read)"; narrow layouts split that over two lines.
  */
-function labelAt(curve: Curve, dataTier: boolean) {
-  const [start, , , end] = curve;
-  if (orientation.value === 'horizontal') {
-    return dataTier
-      ? { x: end.x - 8, y: end.y - 8, anchor: 'end' }
-      : { x: start.x + 8, y: start.y - 8, anchor: 'start' };
+function labelLines(f: Flow): string[] {
+  const unit = t(`unitsShort.${props.result.nodes[f.to]!.unit}`);
+  // Whole numbers read better on a busy diagram, except for tiny rates
+  const round = (v: number) => num(v >= 10 ? Math.round(v) : v);
+  const rate = `${round(f.rate)} ${unit}`;
+  const kind = (k: string) => t(`flowKinds.${k}`);
+  const wide = orientation.value === 'horizontal';
+  switch (f.kind) {
+    case 'request':
+      return [rate];
+    case 'readWrite':
+      return [
+        `${round(f.reads ?? 0)} ${unit} ${kind('read')}`,
+        `${round(f.writes ?? 0)} ${unit} ${kind('write')}`,
+      ];
+    case 'replication':
+      return wide ? [rate, kind('replication')] : [`${rate} ${kind('replication')}`];
+    default:
+      return wide ? [`${rate} ${kind(f.kind)}`] : [rate, kind(f.kind)];
   }
-  if (dataTier) {
-    const mid = pointOnCurve(curve, 0.5);
-    return { x: mid.x, y: mid.y, anchor: 'middle' };
+}
+
+const LINE_HEIGHT = 13;
+
+/**
+ * Where an edge's label goes (the first line's baseline). Request-chain labels
+ * sit just after the source, since the gap between columns is always free.
+ * Edges from the app share a start point, so theirs go near the target.
+ * Replication labels sit beside the primary → replica line.
+ */
+function labelAt(f: Flow, curve: Curve, lines: number) {
+  const [start, , , end] = curve;
+  const mid = pointOnCurve(curve, 0.5);
+  const block = (lines - 1) * LINE_HEIGHT;
+  if (orientation.value === 'horizontal') {
+    if (f.kind === 'replication') {
+      // Left of the line, between the primary and the replica's (possible) bottleneck badge
+      const centre = (start.y + end.y - 19) / 2;
+      return { x: start.x - 8, y: centre - block / 2 + 4, anchor: 'end' };
+    }
+    if (f.from === 'app') return { x: end.x - 8, y: end.y - 8 - block, anchor: 'end' };
+    return { x: start.x + 8, y: start.y - 8, anchor: 'start' };
+  }
+  if (f.kind === 'replication') return { x: mid.x, y: mid.y + 16, anchor: 'middle' };
+  if (f.from === 'app') {
+    // Cache, primary and replica labels sit side by side: push the outer ones outward
+    const anchor = f.to === 'cache' ? 'end' : f.to === 'dbReplica' ? 'start' : 'middle';
+    const x = anchor === 'end' ? mid.x - 6 : anchor === 'start' ? mid.x + 6 : mid.x;
+    return { x, y: mid.y - block / 2 - 2, anchor };
   }
   return { x: start.x + 8, y: start.y + 16, anchor: 'start' };
 }
@@ -122,16 +164,17 @@ function labelAt(curve: Curve, dataTier: boolean) {
 const edges = computed(() =>
   props.result.flows.map((f) => {
     const curve = edgeCurve(layout.value, f.from, f.to);
-    const unit = props.result.nodes[f.to]!.unit;
+    const lines = labelLines(f);
     return {
       id: `${f.from}-${f.to}`,
       curve,
       d: curvePath(curve),
-      labelPos: labelAt(curve, f.from === 'app'),
-      label: `${num(f.rate)} ${t(`unitsShort.${unit}`)}`,
+      lines,
+      labelPos: labelAt(f, curve, lines.length),
+      replication: f.kind === 'replication',
       rate: f.rate,
       dropShare: f.dropShare,
-      kind: kindOf(f.to),
+      kind: particleKind(f),
     };
   }),
 );
@@ -161,9 +204,20 @@ const barTrack = computed(() => layout.value.nodeW - 24 - 34 - 40);
     >
       <g class="edges">
         <g v-for="e in edges" :key="e.id">
-          <path :d="e.d" class="edge" :class="{ dropping: e.dropShare > 0.001 }" />
-          <text class="edge-label" :x="e.labelPos.x" :y="e.labelPos.y" :text-anchor="e.labelPos.anchor">
-            {{ e.label }}
+          <path
+            :d="e.d"
+            class="edge"
+            :class="{ dropping: e.dropShare > 0.001, replication: e.replication }"
+          />
+          <text class="edge-label" :y="e.labelPos.y" :text-anchor="e.labelPos.anchor">
+            <tspan
+              v-for="(line, i) in e.lines"
+              :key="i"
+              :x="e.labelPos.x"
+              :dy="i === 0 ? 0 : LINE_HEIGHT"
+            >
+              {{ line }}
+            </tspan>
           </text>
         </g>
       </g>
@@ -193,7 +247,13 @@ const barTrack = computed(() => layout.value.nodeW - 24 - 34 - 40);
         </template>
         <rect class="box" :width="layout.nodeW" :height="layout.nodeH" rx="10" />
         <text class="title" x="12" y="24">{{ n.title }}</text>
-        <text v-if="n.instances > 1" class="count" :x="layout.nodeW - 12" y="24" text-anchor="end">
+        <text
+          v-if="n.instances > 1"
+          class="count"
+          :x="layout.nodeW - 12"
+          y="24"
+          text-anchor="end"
+        >
           ×{{ n.instances }}
         </text>
 
@@ -222,6 +282,25 @@ const barTrack = computed(() => layout.value.nodeW - 24 - 34 - 40);
           <rect x="-46" y="-9" width="92" height="18" rx="9" />
           <text x="0" y="4" text-anchor="middle">{{ t('bottleneckBadge') }}</text>
         </g>
+      </g>
+
+      <!-- Off buttons sit on each box's top-right corner, outside the node groups
+           so they aren't a button inside a button -->
+      <g
+        v-for="n in nodes.filter((node) => node.optional && node.enabled)"
+        :key="`off-${n.id}`"
+        class="off-button"
+        :transform="`translate(${n.x + layout.nodeW / 2} ${n.y - layout.nodeH / 2})`"
+        role="button"
+        tabindex="0"
+        :aria-label="t('turnOff', { name: n.title })"
+        @click="emit('toggle', n.id as NodeId)"
+        @keydown.enter.prevent="emit('toggle', n.id as NodeId)"
+        @keydown.space.prevent="emit('toggle', n.id as NodeId)"
+      >
+        <title>{{ t('turnOff', { name: n.title }) }}</title>
+        <circle r="8" />
+        <path d="M-3 -3 L3 3 M3 -3 L-3 3" />
       </g>
     </svg>
     <canvas ref="canvas" class="particles" aria-hidden="true" />
@@ -258,6 +337,11 @@ const barTrack = computed(() => layout.value.nodeW - 24 - 34 - 40);
   stroke: var(--color-text);
   stroke-opacity: 0.22;
   stroke-width: 1.5;
+}
+
+/* Replication isn't sent by the app; the primary streams it to the replicas */
+.edge.replication {
+  stroke-dasharray: 3 4;
 }
 
 .edge.dropping {
@@ -383,6 +467,37 @@ const barTrack = computed(() => layout.value.nodeW - 24 - 34 - 40);
 
 .badge rect {
   fill: var(--util-bad);
+}
+
+.off-button {
+  cursor: pointer;
+  outline: none;
+}
+
+.off-button circle {
+  fill: var(--node-bg);
+  stroke: var(--color-text);
+  stroke-opacity: 0.25;
+  transition: stroke 0.2s ease, fill 0.2s ease;
+}
+
+.off-button path {
+  stroke: var(--color-text-muted);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  transition: stroke 0.2s ease;
+}
+
+.off-button:hover circle,
+.off-button:focus-visible circle {
+  stroke: var(--util-bad);
+  stroke-opacity: 1;
+  fill: color-mix(in srgb, var(--util-bad) 15%, var(--node-bg));
+}
+
+.off-button:hover path,
+.off-button:focus-visible path {
+  stroke: var(--util-bad);
 }
 
 .badge text {

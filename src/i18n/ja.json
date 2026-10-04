@@ -223,7 +223,13 @@
         "sync": "Gunicornの目安（2 × コア数）＋ 1：{n}"
       },
       "useRecommended": "使う",
-      "useRecommendedAria": "ワーカー数を推奨値の {n} にする"
+      "useRecommendedAria": "ワーカー数を推奨値の {n} にする",
+      "flowKinds": {
+        "read": "(読み取り)",
+        "write": "(書き込み)",
+        "replication": "(レプリケーション)"
+      },
+      "turnOff": "{name}をオフにする"
     }
   }
 }
