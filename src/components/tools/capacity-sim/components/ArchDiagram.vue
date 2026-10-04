@@ -12,6 +12,15 @@ import {
 } from './layout';
 import { useParticles, type ParticleEdge, type ParticleKind } from './useParticles';
 import { useSimI18n, utilLevel } from './context';
+import {
+  NEEDS_TILE,
+  PROVIDERS,
+  SERVICE_SLOTS,
+  SERVICES,
+  slotFor,
+  type CloudService,
+  type Provider,
+} from './cloudServices';
 
 const props = defineProps<{
   config: SimConfig;
@@ -53,6 +62,29 @@ interface NodeView {
 }
 
 const OPTIONAL: DiagramNodeId[] = ['cdn', 'lb', 'cache', 'dbReplica'];
+
+/** Which cloud's equivalent services to show; AWS by default. */
+const provider = ref<Provider>('aws');
+const tiled = computed(() => NEEDS_TILE[provider.value]);
+
+/** The service a diagram component corresponds to on the chosen cloud (clients have none). */
+function serviceFor(id: DiagramNodeId): CloudService | null {
+  const slot = slotFor(id);
+  return slot ? SERVICES[provider.value][slot] : null;
+}
+
+const ICON = 28;
+/** Glyph size inside the light tile used for Google Cloud and Azure icons. */
+const TILE_GLYPH = 20;
+
+/** Legend rows; the primary and its replicas share one database service. */
+const legend = computed(() =>
+  SERVICE_SLOTS.map((slot) => ({
+    label:
+      slot === 'db' ? `${t('nodes.dbPrimary')} / ${t('nodes.dbReplica')}` : t(`nodes.${slot}`),
+    service: SERVICES[provider.value][slot],
+  })),
+);
 
 function subtitle(id: DiagramNodeId): string {
   const c = props.config;
@@ -195,115 +227,181 @@ const barTrack = computed(() => layout.value.nodeW - 24 - 34 - 40);
 </script>
 
 <template>
-  <div ref="container" class="diagram" :class="orientation">
-    <svg
-      class="diagram-svg"
-      :viewBox="`0 0 ${layout.width} ${layout.height}`"
-      role="group"
-      :aria-label="t('diagramLabel')"
-    >
-      <g class="edges">
-        <g v-for="e in edges" :key="e.id">
-          <path
-            :d="e.d"
-            class="edge"
-            :class="{ dropping: e.dropShare > 0.001, replication: e.replication }"
-          />
-          <text class="edge-label" :y="e.labelPos.y" :text-anchor="e.labelPos.anchor">
-            <tspan
-              v-for="(line, i) in e.lines"
-              :key="i"
-              :x="e.labelPos.x"
-              :dy="i === 0 ? 0 : LINE_HEIGHT"
-            >
-              {{ line }}
-            </tspan>
-          </text>
-        </g>
-      </g>
-
-      <g
-        v-for="n in nodes"
-        :key="n.id"
-        class="node"
-        :class="{
-          ghost: !n.enabled,
-          selected: selected === n.id,
-          saturated: n.saturated,
-          interactive: n.id !== 'clients',
-        }"
-        :transform="`translate(${n.x - layout.nodeW / 2} ${n.y - layout.nodeH / 2})`"
-        :role="n.id === 'clients' ? undefined : 'button'"
-        :tabindex="n.id === 'clients' ? undefined : 0"
-        :aria-label="n.enabled ? n.title : `${n.title}: ${t('nodeOff')}`"
-        :aria-pressed="n.id === 'clients' || !n.enabled ? undefined : selected === n.id"
-        @click="activate(n)"
-        @keydown.enter.prevent="activate(n)"
-        @keydown.space.prevent="activate(n)"
+  <div class="diagram-wrap">
+    <div ref="container" class="diagram" :class="orientation">
+      <svg
+        class="diagram-svg"
+        :viewBox="`0 0 ${layout.width} ${layout.height}`"
+        role="group"
+        :aria-label="t('diagramLabel')"
       >
-        <template v-if="n.instances > 1">
-          <rect class="stack" x="10" y="10" :width="layout.nodeW" :height="layout.nodeH" rx="10" />
-          <rect class="stack" x="5" y="5" :width="layout.nodeW" :height="layout.nodeH" rx="10" />
-        </template>
-        <rect class="box" :width="layout.nodeW" :height="layout.nodeH" rx="10" />
-        <text class="title" x="12" y="24">{{ n.title }}</text>
-        <text
-          v-if="n.instances > 1"
-          class="count"
-          :x="layout.nodeW - 12"
-          y="24"
-          text-anchor="end"
-        >
-          ×{{ n.instances }}
-        </text>
+        <defs>
+          <!-- Rounds the corners of the square AWS icons -->
+          <clipPath id="cloud-icon-clip" clipPathUnits="objectBoundingBox">
+            <rect width="1" height="1" rx="0.18" />
+          </clipPath>
+        </defs>
 
-        <template v-if="n.enabled">
-          <text class="subtitle" x="12" y="42">{{ n.subtitle }}</text>
-          <g v-for="(b, i) in n.bars" :key="b.key" :transform="`translate(12 ${56 + i * 13})`">
-            <text class="bar-label" x="0" y="7">{{ b.label }}</text>
-            <rect class="bar-track" x="34" y="1" :width="barTrack" height="6" rx="3" />
-            <rect
-              class="bar-fill"
-              :class="b.level"
-              x="34"
-              y="1"
-              :width="barTrack * Math.min(1, b.util)"
-              height="6"
-              rx="3"
+        <g class="edges">
+          <g v-for="e in edges" :key="e.id">
+            <path
+              :d="e.d"
+              class="edge"
+              :class="{ dropping: e.dropShare > 0.001, replication: e.replication }"
             />
-            <text class="bar-value" :class="b.level" :x="layout.nodeW - 24" y="7" text-anchor="end">
-              {{ b.util > 9.99 ? '>999%' : pct(b.util) }}
+            <text class="edge-label" :y="e.labelPos.y" :text-anchor="e.labelPos.anchor">
+              <tspan
+                v-for="(line, i) in e.lines"
+                :key="i"
+                :x="e.labelPos.x"
+                :dy="i === 0 ? 0 : LINE_HEIGHT"
+              >
+                {{ line }}
+              </tspan>
             </text>
           </g>
-        </template>
-        <text v-else class="subtitle" x="12" y="42">{{ t('nodeOff') }}</text>
-
-        <g v-if="n.bottleneck" class="badge" :transform="`translate(${layout.nodeW / 2} -10)`">
-          <rect x="-46" y="-9" width="92" height="18" rx="9" />
-          <text x="0" y="4" text-anchor="middle">{{ t('bottleneckBadge') }}</text>
         </g>
-      </g>
 
-      <!-- Off buttons sit on each box's top-right corner, outside the node groups
-           so they aren't a button inside a button -->
-      <g
-        v-for="n in nodes.filter((node) => node.optional && node.enabled)"
-        :key="`off-${n.id}`"
-        class="off-button"
-        :transform="`translate(${n.x + layout.nodeW / 2} ${n.y - layout.nodeH / 2})`"
-        role="button"
-        tabindex="0"
-        :aria-label="t('turnOff', { name: n.title })"
-        @click="emit('toggle', n.id as NodeId)"
-        @keydown.enter.prevent="emit('toggle', n.id as NodeId)"
-        @keydown.space.prevent="emit('toggle', n.id as NodeId)"
-      >
-        <title>{{ t('turnOff', { name: n.title }) }}</title>
-        <circle r="8" />
-        <path d="M-3 -3 L3 3 M3 -3 L-3 3" />
-      </g>
-    </svg>
-    <canvas ref="canvas" class="particles" aria-hidden="true" />
+        <g
+          v-for="n in nodes"
+          :key="n.id"
+          class="node"
+          :class="{
+            ghost: !n.enabled,
+            selected: selected === n.id,
+            saturated: n.saturated,
+            interactive: n.id !== 'clients',
+          }"
+          :transform="`translate(${n.x - layout.nodeW / 2} ${n.y - layout.nodeH / 2})`"
+          :role="n.id === 'clients' ? undefined : 'button'"
+          :tabindex="n.id === 'clients' ? undefined : 0"
+          :aria-label="n.enabled ? n.title : `${n.title}: ${t('nodeOff')}`"
+          :aria-pressed="n.id === 'clients' || !n.enabled ? undefined : selected === n.id"
+          @click="activate(n)"
+          @keydown.enter.prevent="activate(n)"
+          @keydown.space.prevent="activate(n)"
+        >
+          <template v-if="n.instances > 1">
+            <rect class="stack" x="10" y="10" :width="layout.nodeW" :height="layout.nodeH" rx="10" />
+            <rect class="stack" x="5" y="5" :width="layout.nodeW" :height="layout.nodeH" rx="10" />
+          </template>
+          <rect class="box" :width="layout.nodeW" :height="layout.nodeH" rx="10" />
+          <text class="title" x="12" y="24">{{ n.title }}</text>
+          <!-- Cloud equivalent, on the box's top edge near the left corner. It's
+               inset a little so it clears the neighbouring box's off button when
+               boxes sit side by side on narrow screens -->
+          <g
+            v-if="serviceFor(n.id)"
+            class="cloud-icon"
+            :transform="`translate(4 ${-ICON / 2 - 4})`"
+          >
+            <title>{{ serviceFor(n.id)!.name }}</title>
+            <template v-if="tiled">
+              <rect class="icon-tile" :width="ICON" :height="ICON" rx="6" />
+              <image
+                :href="serviceFor(n.id)!.icon"
+                :x="(ICON - TILE_GLYPH) / 2"
+                :y="(ICON - TILE_GLYPH) / 2"
+                :width="TILE_GLYPH"
+                :height="TILE_GLYPH"
+              />
+            </template>
+            <image
+              v-else
+              :href="serviceFor(n.id)!.icon"
+              :width="ICON"
+              :height="ICON"
+              clip-path="url(#cloud-icon-clip)"
+            />
+          </g>
+          <text
+            v-if="n.instances > 1"
+            class="count"
+            :x="layout.nodeW - 12"
+            y="24"
+            text-anchor="end"
+          >
+            ×{{ n.instances }}
+          </text>
+
+          <template v-if="n.enabled">
+            <text class="subtitle" x="12" y="42">{{ n.subtitle }}</text>
+            <g v-for="(b, i) in n.bars" :key="b.key" :transform="`translate(12 ${56 + i * 13})`">
+              <text class="bar-label" x="0" y="7">{{ b.label }}</text>
+              <rect class="bar-track" x="34" y="1" :width="barTrack" height="6" rx="3" />
+              <rect
+                class="bar-fill"
+                :class="b.level"
+                x="34"
+                y="1"
+                :width="barTrack * Math.min(1, b.util)"
+                height="6"
+                rx="3"
+              />
+              <text class="bar-value" :class="b.level" :x="layout.nodeW - 24" y="7" text-anchor="end">
+                {{ b.util > 9.99 ? '>999%' : pct(b.util) }}
+              </text>
+            </g>
+          </template>
+          <text v-else class="subtitle" x="12" y="42">{{ t('nodeOff') }}</text>
+
+          <g v-if="n.bottleneck" class="badge" :transform="`translate(${layout.nodeW / 2 + (serviceFor(n.id) ? 8 : 0)} -10)`">
+            <rect x="-46" y="-9" width="92" height="18" rx="9" />
+            <text x="0" y="4" text-anchor="middle">{{ t('bottleneckBadge') }}</text>
+          </g>
+        </g>
+
+        <!-- Off buttons sit on each box's top-right corner, outside the node groups
+             so they aren't a button inside a button -->
+        <g
+          v-for="n in nodes.filter((node) => node.optional && node.enabled)"
+          :key="`off-${n.id}`"
+          class="off-button"
+          :transform="`translate(${n.x + layout.nodeW / 2} ${n.y - layout.nodeH / 2})`"
+          role="button"
+          tabindex="0"
+          :aria-label="t('turnOff', { name: n.title })"
+          @click="emit('toggle', n.id as NodeId)"
+          @keydown.enter.prevent="emit('toggle', n.id as NodeId)"
+          @keydown.space.prevent="emit('toggle', n.id as NodeId)"
+        >
+          <title>{{ t('turnOff', { name: n.title }) }}</title>
+          <circle r="8" />
+          <path d="M-3 -3 L3 3 M3 -3 L-3 3" />
+        </g>
+      </svg>
+      <canvas ref="canvas" class="particles" aria-hidden="true" />
+    </div>
+
+    <!-- Outside the diagram box, so the particle canvas only covers the SVG -->
+    <figure class="cloud-legend">
+      <figcaption class="cloud-legend-head">
+        <span class="cloud-legend-title">{{ t('cloud.title') }}</span>
+        <span class="provider-switch" role="radiogroup" :aria-label="t('cloud.provider')">
+          <button
+            v-for="p in PROVIDERS"
+            :key="p"
+            type="button"
+            role="radio"
+            :aria-checked="provider === p"
+            :class="{ active: provider === p }"
+            @click="provider = p"
+          >
+            {{ t(`cloud.providers.${p}`) }}
+          </button>
+        </span>
+      </figcaption>
+      <ul>
+        <li v-for="item in legend" :key="item.label">
+          <span class="legend-icon" :class="{ tiled }">
+            <img :src="item.service.icon" alt="" />
+          </span>
+          <span class="cloud-legend-label">{{ item.label }}</span>
+          <span class="cloud-legend-service">{{ item.service.name }}</span>
+        </li>
+      </ul>
+      <p class="cloud-legend-note">{{ t('cloud.note') }} {{ t(`cloud.credit.${provider}`) }}</p>
+    </figure>
   </div>
 </template>
 
@@ -315,6 +413,127 @@ const barTrack = computed(() => layout.value.nodeW - 24 - 34 - 40);
 
 .diagram.vertical {
   max-width: 440px;
+}
+
+.cloud-icon {
+  pointer-events: none;
+}
+
+/* Light backing for Google Cloud and Azure glyphs, which have no background of their own */
+.icon-tile {
+  fill: #ffffff;
+  stroke: rgba(0, 0, 0, 0.12);
+}
+
+.cloud-legend {
+  margin: 1rem 0 0;
+  padding-top: 0.875rem;
+  border-top: 1px solid var(--panel-border);
+}
+
+.cloud-legend-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.cloud-legend-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.provider-switch {
+  display: inline-flex;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.provider-switch button {
+  font: inherit;
+  font-size: 0.75rem;
+  padding: 0.3125rem 0.75rem;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.provider-switch button + button {
+  border-left: 1px solid var(--panel-border);
+}
+
+.provider-switch button.active {
+  color: var(--color-primary);
+  font-weight: 600;
+  background-color: color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+
+.provider-switch button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.cloud-legend ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem 1.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cloud-legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+}
+
+.legend-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.legend-icon img {
+  width: 100%;
+  height: 100%;
+}
+
+.legend-icon.tiled {
+  padding: 3px;
+  box-sizing: border-box;
+  background: #ffffff;
+}
+
+.cloud-legend-label {
+  color: var(--color-text-muted);
+}
+
+.cloud-legend-label::after {
+  content: ' →';
+}
+
+.cloud-legend-service {
+  font-weight: 600;
+}
+
+.cloud-legend-note {
+  margin: 0.625rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--color-text-muted);
 }
 
 .diagram-svg {

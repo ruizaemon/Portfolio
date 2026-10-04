@@ -15,6 +15,8 @@ component: capacity-sim
 **On this page**
 
 - [Parameters explained](#parameters-explained)
+  - [CDN](#cdn)
+    - [Served at the edge](#served-at-the-edge)
   - [App server](#app-server)
     - [Servers](#servers)
     - [Server type](#server-type)
@@ -46,6 +48,41 @@ component: capacity-sim
 Every component has a few resources, and each one caps how many requests per second the component can handle. Below, these are written as **max req/s from** a resource, for example max req/s from CPU (the database counts queries instead, so it's max queries/s). The component can handle whichever is lowest, and the bars in the diagram show how close each resource is to its maximum (load / max).
 
 The examples below use the default **One VPS** scenario: an async server with 2 workers, 2 vCPU, 4 GB RAM, 10 ms of CPU per request, a database that takes 4 ms per query, and 3 queries per request.
+
+### CDN
+
+A **content delivery network** is a network of servers spread around the world, called edge locations, run by a provider such as Cloudflare, Amazon CloudFront, Google Cloud CDN or Azure Front Door. Instead of connecting to your servers, users connect to the nearest edge, which answers for you whenever it can.
+
+##### How it works
+
+1. A user requests a page or file. Your domain's DNS points at the CDN, so the request goes to the nearest edge, often in the same city.
+2. If the edge already has a fresh copy of the response (a **cache hit**), it answers straight away. Your servers never see the request.
+3. If not (a **cache miss**), the edge forwards the request to your servers, called the **origin**. It passes the response back to the user and keeps a copy for the next person who asks.
+4. Your server's response headers decide how long a copy stays fresh, mainly `Cache-Control`. For example, `Cache-Control: public, max-age=3600` means "any CDN may cache this for an hour". Once a copy expires, the edge checks with the origin again, often with a cheap "has this changed?" request that comes back as "304 Not Modified" if it hasn't.
+5. When you deploy new content, you either **purge** the old copies from the CDN, or give files new names for each version (like `app.3f9a1c.js`), so new content has new URLs and old copies simply stop being used.
+
+##### What it helps with
+
+- **Latency:** the edge is close to the user. A round trip to an edge in the same city takes a few milliseconds, compared with around 150 ms to a server on another continent. Secure connections are set up with the nearby edge too, which saves several more round trips.
+- **Load:** cache hits never reach your servers, so the load balancer, app servers and database only see the misses.
+- **Bandwidth:** large files like images, scripts and video are sent from the edge, freeing your servers' network (see Network below).
+- **Resilience:** a CDN can absorb sudden traffic spikes and many kinds of attacks before they reach you.
+
+##### What can be cached
+
+| Content | Cacheable at the edge? |
+| --- | --- |
+| Static files: images, CSS, JavaScript, fonts, video | Yes, almost always |
+| Public pages that look the same for everyone, like blog posts or product pages | Yes, often for a few minutes |
+| API responses that are the same for everyone, like a public price list | Sometimes, briefly |
+| Personalized or logged-in content, like a cart, an account page or a dashboard | No |
+| Requests that change data (POST, PUT, DELETE) | No, always passed to the origin |
+
+#### Served at the edge
+
+The share of all requests the CDN answers without contacting your servers. It depends on how much of your traffic is cacheable and how often the same content is requested: a mostly static marketing site can reach 95% or more, while an app whose responses are mostly personalized might be well under 10%.
+
+In the simulator, this share is removed from the traffic before it reaches the load balancer, and each edge hit takes a fixed 15 ms. The CDN itself is treated as having unlimited capacity, since providers run very large networks. Misses continue to the load balancer as normal.
 
 ### App server
 

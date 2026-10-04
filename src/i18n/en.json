@@ -229,7 +229,22 @@
         "write": "(write)",
         "replication": "(replication)"
       },
-      "turnOff": "Turn off {name}"
+      "turnOff": "Turn off {name}",
+      "cloud": {
+        "title": "Cloud equivalents",
+        "provider": "Cloud provider",
+        "providers": {
+          "aws": "AWS",
+          "gcp": "Google Cloud",
+          "azure": "Azure"
+        },
+        "note": "For reference: the closest managed service on each cloud.",
+        "credit": {
+          "aws": "Icons from AWS Architecture Icons.",
+          "gcp": "Icons from the Google Cloud icon set.",
+          "azure": "Icons from the Azure architecture icons."
+        }
+      }
     }
   }
 }

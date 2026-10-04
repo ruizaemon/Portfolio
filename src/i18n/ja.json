@@ -229,7 +229,22 @@
         "write": "(書き込み)",
         "replication": "(レプリケーション)"
       },
-      "turnOff": "{name}をオフにする"
+      "turnOff": "{name}をオフにする",
+      "cloud": {
+        "title": "クラウドの対応サービス",
+        "provider": "クラウドプロバイダー",
+        "providers": {
+          "aws": "AWS",
+          "gcp": "Google Cloud",
+          "azure": "Azure"
+        },
+        "note": "参考情報です。各クラウドで最も近いマネージドサービスを示しています。",
+        "credit": {
+          "aws": "アイコンはAWS Architecture Iconsのものです。",
+          "gcp": "アイコンはGoogle Cloudのアイコンセットのものです。",
+          "azure": "アイコンはAzureのアーキテクチャアイコンのものです。"
+        }
+      }
     }
   }
 }
