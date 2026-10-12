@@ -117,7 +117,8 @@ A forward proxy hides many clients behind one address that servers see; a revers
 
 </details>
 
-##### Layer 7 vs layer 4
+<details class="explainer">
+<summary>Layer 7 vs layer 4</summary>
 
 Load balancers come in two main kinds, named after the highest network layer they work at:
 
@@ -142,7 +143,10 @@ Two details follow from this. First, TCP only works if every packet of a connect
 
 On AWS, these all belong to the **Elastic Load Balancing (ELB)** family, which the diagram's icon represents. The family also includes the Gateway Load Balancer, for routing traffic through security appliances such as firewalls, and the Classic Load Balancer: the original 2009 product, simply called "ELB" before the others existed, and now legacy. The simulator's load balancer spreads HTTP requests across app servers, which is the ALB's job, so the Google Cloud and Azure options in the diagram show their layer 7 equivalents.
 
-##### Important things to know
+</details>
+
+<details class="explainer">
+<summary>Operational considerations</summary>
 
 - **Health checks:** the load balancer regularly calls each server, for example `GET /health`, and stops sending traffic to any server that fails, until it recovers. This is what makes a crashed server invisible to users, as long as the others have room. A good health check is cheap but checks the essentials, like the database connection.
 - **How it picks a server:** **round robin** simply takes turns, but ignores how busy each server is. **Least outstanding requests** (least connections on some load balancers) sends each request to the server with the fewest requests in progress, which works better when some requests are much slower than others.
@@ -153,6 +157,8 @@ On AWS, these all belong to the **Elastic Load Balancing (ELB)** family, which t
 - **Several data centers at once:** managed load balancers run in multiple availability zones and send traffic to servers in all of them, so one data center failing doesn't take your app down. They aren't a single point of failure.
 - **Autoscaling:** with an Auto Scaling group (or the equivalent on other clouds), new servers register with the load balancer automatically as traffic grows, and are drained and removed when it falls.
 - **Timeouts:** the load balancer gives up on requests that take too long (the ALB's default idle timeout is 60 seconds). Long-running work such as generating a big report should run in the background instead of holding a request open.
+
+</details>
 
 #### Max throughput
 
