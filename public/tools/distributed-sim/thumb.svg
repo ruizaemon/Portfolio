@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" font-family="monospace">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#06B6D4" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#06B6D4" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="320" height="180" fill="#1C1C22"/>
+  <rect width="320" height="180" fill="url(#glow)"/>
+
+  <!-- three region bands -->
+  <g fill="#ffffff" fill-opacity="0.03" stroke="#ffffff" stroke-opacity="0.18">
+    <rect x="16" y="18" width="200" height="44" rx="8"/>
+    <rect x="16" y="68" width="200" height="44" rx="8"/>
+    <rect x="16" y="118" width="200" height="44" rx="8" stroke-dasharray="4 3" fill-opacity="0"/>
+  </g>
+  <g font-size="7" fill="#ffffff" fill-opacity="0.45" letter-spacing="0.5">
+    <text x="24" y="28">REGION 1 · HOME</text>
+    <text x="24" y="78">REGION 2</text>
+    <text x="24" y="128" fill="#f369ae" fill-opacity="0.9">REGION 3 · DOWN</text>
+  </g>
+
+  <!-- region 1: clients → app → replica -->
+  <g transform="translate(0 32)">
+    <rect x="24" y="2" width="30" height="22" rx="4" fill="#ffffff" fill-opacity="0.04" stroke="#ffffff" stroke-opacity="0.4"/>
+    <rect x="72" y="2" width="40" height="22" rx="4" fill="#00FF99" fill-opacity="0.08" stroke="#00FF99"/>
+    <rect x="80" y="16" width="24" height="3" rx="1.5" fill="#ffffff" fill-opacity="0.1"/>
+    <rect x="80" y="16" width="18" height="3" rx="1.5" fill="#00FF99"/>
+    <rect x="130" y="2" width="40" height="22" rx="4" fill="#06B6D4" fill-opacity="0.1" stroke="#06B6D4"/>
+    <rect x="138" y="16" width="24" height="3" rx="1.5" fill="#ffffff" fill-opacity="0.1"/>
+    <rect x="138" y="16" width="11" height="3" rx="1.5" fill="#06B6D4"/>
+    <path d="M54 13 H72 M112 13 H130 M170 13 H240" stroke="#ffffff" stroke-opacity="0.3" fill="none"/>
+    <circle cx="62" cy="13" r="1.8" fill="#00FF99"/><circle cx="120" cy="13" r="1.8" fill="#06B6D4"/>
+  </g>
+  <!-- region 2 -->
+  <g transform="translate(0 82)">
+    <rect x="24" y="2" width="30" height="22" rx="4" fill="#ffffff" fill-opacity="0.04" stroke="#ffffff" stroke-opacity="0.4"/>
+    <rect x="72" y="2" width="40" height="22" rx="4" fill="#00FF99" fill-opacity="0.08" stroke="#00FF99"/>
+    <rect x="80" y="16" width="24" height="3" rx="1.5" fill="#ffffff" fill-opacity="0.1"/>
+    <rect x="80" y="16" width="22" height="3" rx="1.5" fill="#ffb454"/>
+    <rect x="130" y="2" width="40" height="22" rx="4" fill="#06B6D4" fill-opacity="0.1" stroke="#06B6D4"/>
+    <rect x="138" y="16" width="24" height="3" rx="1.5" fill="#ffffff" fill-opacity="0.1"/>
+    <rect x="138" y="16" width="13" height="3" rx="1.5" fill="#06B6D4"/>
+    <path d="M54 13 H72 M112 13 H130" stroke="#ffffff" stroke-opacity="0.3" fill="none"/>
+    <path d="M170 13 H228 V-33" stroke="#f369ae" stroke-opacity="0.8" stroke-dasharray="3 3" fill="none"/>
+    <circle cx="62" cy="13" r="1.8" fill="#00FF99"/><circle cx="120" cy="13" r="1.8" fill="#06B6D4"/>
+    <circle cx="200" cy="13" r="1.8" fill="#f369ae"/>
+  </g>
+  <!-- region 3, down -->
+  <g transform="translate(0 132)" opacity="0.35">
+    <rect x="24" y="2" width="30" height="22" rx="4" fill="none" stroke="#ffffff" stroke-opacity="0.4" stroke-dasharray="3 2"/>
+    <rect x="72" y="2" width="40" height="22" rx="4" fill="none" stroke="#00FF99" stroke-dasharray="3 2"/>
+    <rect x="130" y="2" width="40" height="22" rx="4" fill="none" stroke="#06B6D4" stroke-dasharray="3 2"/>
+  </g>
+
+  <!-- primary in the home region -->
+  <g transform="translate(240 30)">
+    <rect width="56" height="30" rx="5" fill="#8B5CF6" fill-opacity="0.14" stroke="#8B5CF6"/>
+    <text x="28" y="13" font-size="7.5" fill="#c4b5fd" text-anchor="middle">PRIMARY</text>
+    <rect x="8" y="20" width="40" height="3" rx="1.5" fill="#ffffff" fill-opacity="0.1"/>
+    <rect x="8" y="20" width="26" height="3" rx="1.5" fill="#8B5CF6"/>
+  </g>
+  <text x="268" y="80" font-size="7" fill="#f369ae" text-anchor="middle">+80 ms</text>
+</svg>

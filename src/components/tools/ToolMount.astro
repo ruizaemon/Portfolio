@@ -6,9 +6,10 @@
  */
 import { t } from '@/utils/i18n';
 import CapacitySim from './capacity-sim/CapacitySim.vue';
+import DistributedSim from './distributed-sim/DistributedSim.vue';
 
 interface Props {
-  component: 'capacity-sim';
+  component: 'capacity-sim' | 'distributed-sim';
   locale: string;
 }
 
@@ -19,6 +20,11 @@ const { component, locale } = Astro.props;
   <CapacitySim client:only="vue" locale={locale}>
     <p slot="fallback" class="tool-loading">{t(locale, 'tools.capacitySim.loading')}</p>
   </CapacitySim>
+)}
+{component === 'distributed-sim' && (
+  <DistributedSim client:only="vue" locale={locale}>
+    <p slot="fallback" class="tool-loading">{t(locale, 'tools.distributedSim.loading')}</p>
+  </DistributedSim>
 )}
 
 <style>

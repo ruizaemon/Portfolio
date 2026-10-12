@@ -41,6 +41,7 @@ component: capacity-sim
   - [End-to-end latency](#end-to-end-latency)
   - [Past 100%: errors and timeouts](#past-100-errors-and-timeouts)
 - [Assumptions](#assumptions)
+- [Continue to part 2](#continue-to-part-2)
 
 </nav>
 
@@ -648,3 +649,7 @@ This is a simplified, steady-state model for building intuition, not for exact c
 - The CDN has unlimited capacity, and the OS keeps 10% of each app server's RAM.
 - Each worker process uses one CPU core at a time. Async workers run many requests at once; sync workers run one.
 - A saturated component drops the excess; those requests count as errors, and the rest wait until a 10 s timeout.
+
+## Continue to part 2
+
+The [Distributed Capacity Simulator](/en/projects/tools/distributed-sim) picks up where this stack ends: several regions running copies of it, a sharded database, a connection pooler, and what retries and load shedding do once something is over capacity.

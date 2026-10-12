@@ -450,6 +450,33 @@ const tags = frontmatter.tags ?? [];
   .tool-content :global(.d-dashed) {
     stroke-dasharray: 5 4;
   }
+  .tool-content :global(.d-line.pink) {
+    stroke: var(--color-pink);
+    stroke-opacity: 1;
+  }
+  .tool-content :global(.d-arrow.pink) {
+    fill: var(--color-pink);
+    fill-opacity: 1;
+  }
+  /* Region bands and the "success" box in the distributed simulator's diagrams */
+  .tool-content :global(.d-band) {
+    fill: var(--color-text);
+    fill-opacity: 0.03;
+    stroke: var(--color-text);
+    stroke-opacity: 0.15;
+  }
+  .tool-content :global(.d-band-label) {
+    fill: var(--color-text-muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .tool-content :global(.d-box-ok) {
+    stroke: var(--color-primary);
+    stroke-opacity: 1;
+    fill: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  }
 
   .tool-content :global(.d-arrow) {
     fill: var(--color-text);

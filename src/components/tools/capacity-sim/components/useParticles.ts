@@ -1,11 +1,13 @@
 import { onBeforeUnmount, onMounted, type Ref } from 'vue';
-import { pointOnCurve, type Curve } from './layout';
+import { pointOnCurve, type Curve, type Point } from './layout';
 
 export type ParticleKind = 'request' | 'cache' | 'db';
 
 export interface ParticleEdge {
   id: string;
   curve: Curve;
+  /** Position along the edge for 0–1, for edges that aren't a single curve. */
+  at?: (t: number) => Point;
   /** Real load per second on this edge. */
   rate: number;
   /** Share of arrivals the target drops (0–1). */
@@ -127,7 +129,7 @@ export function useParticles(
 
     for (const p of particles) {
       const edge = byId.get(p.edgeId)!;
-      const { x, y } = pointOnCurve(edge.curve, p.t);
+      const { x, y } = edge.at ? edge.at(p.t) : pointOnCurve(edge.curve, p.t);
       ctx.beginPath();
       if (p.fade > 0) {
         // Dropped at the target: a fading puff

@@ -20,7 +20,7 @@ export const TIMEOUT_MS = 10_000;
 const NODE_ORDER: NodeId[] = ['cdn', 'lb', 'app', 'cache', 'dbPrimary', 'dbReplica'];
 
 /** Static description of a node: what limits it and how it queues. */
-interface NodeSpec {
+export interface NodeSpec {
   id: NodeId;
   instances: number;
   unit: LoadUnit;
@@ -32,7 +32,7 @@ interface NodeSpec {
 }
 
 /** Values derived from the config that several calculations share. */
-interface Derived {
+export interface Derived {
   appCount: number;
   /** RAM available to worker processes on each server, in MB. */
   usableMB: number;
@@ -59,7 +59,7 @@ export function workersThatFit(app: SimConfig['app']): number {
   return Math.floor(usableRamMB(app) / perWorkerMB);
 }
 
-function derive(cfg: SimConfig): Derived {
+export function derive(cfg: SimConfig): Derived {
   const { traffic, db } = cfg;
   const cacheHit = cfg.cache.enabled ? cfg.cache.hitRatio : 0;
   const dbTimeMs = traffic.queriesPerRequest * db.queryMs;
@@ -94,7 +94,8 @@ function spec(
   return { id, instances, unit, parallelism, baseLatencyMs, limits, capacity };
 }
 
-function buildSpecs(cfg: SimConfig, d: Derived): Partial<Record<NodeId, NodeSpec>> {
+/** What each component can do, per instance; shared with the distributed simulator. */
+export function buildSpecs(cfg: SimConfig, d: Derived): Partial<Record<NodeId, NodeSpec>> {
   const { app, db, traffic } = cfg;
   const specs: Partial<Record<NodeId, NodeSpec>> = {};
 

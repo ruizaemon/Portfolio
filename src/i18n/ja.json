@@ -255,6 +255,224 @@
           "azure": "アイコンはAzureのアーキテクチャアイコンのものです。"
         }
       }
+    },
+    "distributedSim": {
+      "loading": "シミュレーターを読み込み中…",
+      "controls": "コントロール",
+      "presets": "シナリオ",
+      "customDesc": "独自の構成です。シナリオを選ぶとリセットされます。",
+      "enable": "{name}を有効にする",
+      "groups": {
+        "traffic": "トラフィック",
+        "regions": "リージョン",
+        "stack": "リージョンごとの構成",
+        "db": "データベース",
+        "pooler": "コネクションプーラー",
+        "resilience": "リトライとロードシェディング"
+      },
+      "fields": {
+        "rps": "リクエスト / 秒",
+        "readRatio": "読み取りの割合",
+        "regionCount": "リージョン数",
+        "crossRegionMs": "リージョン間の往復時間",
+        "appCount": "リージョンあたりのサーバー数",
+        "vcpu": "アプリ vCPU",
+        "cdn": "CDN · エッジで {hit}",
+        "cache": "キャッシュ · ヒット率 {hit}",
+        "shards": "シャード数",
+        "hotShare": "最も負荷の高いシャードの割合",
+        "replicas": "シャード・リージョンあたりのレプリカ数",
+        "dbVcpu": "DB vCPU",
+        "maxConnections": "最大接続数",
+        "poolSize": "データベースあたりのプールサイズ",
+        "retries": "失敗1件あたりのリトライ回数",
+        "retryBudget": "リトライ予算",
+        "shedding": "ロードシェディング",
+        "shedThreshold": "受け入れ上限"
+      },
+      "summary": {
+        "on": "オン",
+        "off": "オフ",
+        "traffic": "{rps} req/s · 読み取り {reads}",
+        "oneRegion": "単一リージョン",
+        "regions": "{count} 中 {live} 稼働 · 往復 {ms} ms",
+        "stack": "{count} × {vcpu} vCPU",
+        "db": "{shards} シャード · レプリカ {replicas} · {vcpu} vCPU",
+        "pooler": "DBあたり {n} 接続",
+        "resilience": "リトライ {retries} 回 · シェディング{shedding}"
+      },
+      "regionList": "リージョン",
+      "regionChip": "リージョン {n}",
+      "regionHint": "リージョンをクリックすると停止し、そのトラフィックは他のリージョンに流れます。",
+      "stackNote": "各リージョンはパート1の「リードレプリカ」構成のコピーを動かします：非同期ワーカー、リクエストあたり CPU 10 ms、リクエストあたり3クエリ、クエリあたり 4 ms。",
+      "poolerNote": "ワーカーはデータベースではなくプーラーに接続します。プーラーは各データベースへ少数のサーバー接続を保ち、空くまでクエリを待たせます。",
+      "hotShareHint": "均等に分散すると {even} です。",
+      "retryBudgetHint": "リトライを実トラフィックの10%までに制限します。",
+      "sheddingHint": "ロードバランサーが上限を超えた分をキューに入れず、即座に拒否します。",
+      "region": "リージョン {n}",
+      "home": "ホーム",
+      "down": "停止中",
+      "takeDown": "リージョン {n} を停止する",
+      "bringBack": "リージョン {n} を復旧する",
+      "takeDownShort": "停止",
+      "bringBackShort": "復旧",
+      "rerouted": "停止中 · トラフィックは迂回",
+      "nodes": {
+        "clients": "クライアント",
+        "cdn": "CDN",
+        "lb": "ロードバランサー",
+        "app": "アプリサーバー",
+        "cache": "キャッシュ",
+        "pooler": "プーラー",
+        "replica": "リードレプリカ",
+        "primary": "DB プライマリ"
+      },
+      "sub": {
+        "clients": "{rps} req/s",
+        "cdn": "エッジで {hit}%",
+        "lb": "最大 {max} req/s",
+        "app": "{vcpu} vCPU · {ram} GB",
+        "cache": "ヒット率 {hit}%",
+        "pooler": "DBあたり {n} 接続",
+        "replica": "読み取り + 反映",
+        "replicaSharded": "最も高負荷のシャード · クエリの {share}%",
+        "primaryWrites": "書き込みのみ",
+        "primaryAll": "読み書き",
+        "primarySharded": "最も高負荷のシャード · クエリの {share}%"
+      },
+      "resShort": {
+        "cpu": "CPU",
+        "ram": "RAM",
+        "network": "NET",
+        "throughput": "RPS",
+        "ops": "OPS",
+        "connections": "CONN",
+        "workers": "WORK"
+      },
+      "res": {
+        "cpu": "CPU",
+        "ram": "メモリ",
+        "network": "ネットワーク",
+        "throughput": "スループット",
+        "ops": "オペレーション",
+        "connections": "接続数",
+        "workers": "ワーカー"
+      },
+      "units": {
+        "req": "req/s",
+        "query": "クエリ/s",
+        "op": "ops/s"
+      },
+      "unitsShort": {
+        "req": "req/s",
+        "query": "q/s",
+        "op": "ops/s"
+      },
+      "flowKinds": {
+        "read": "(読み取り)",
+        "write": "(書き込み)"
+      },
+      "crossRegionLabel": "+{ms} ms リージョン間",
+      "bottleneckBadge": "ボトルネック",
+      "diagramLabel": "アーキテクチャ図。リージョンごとに1段。コンポーネントをクリックすると詳細を表示し、リージョンのボタンで停止できます。",
+      "metrics": "メトリクス",
+      "m": {
+        "traffic": "トラフィック",
+        "attempts": "リトライ込みで {n} 試行/s",
+        "maxRps": "最大処理能力",
+        "headroom": "余裕 {x}倍",
+        "overCapacity": "処理能力を {x}% 超過",
+        "bottleneck": "ボトルネック",
+        "bottleneckHint": "トラフィック増加時に最初に飽和する箇所",
+        "none": "なし",
+        "regionLoss": "リージョンをもう1つ失うと",
+        "regionLossHint": "さらに1リージョン停止時の最大処理能力",
+        "regionLossOk": "{max} req/s · 現在のトラフィックは収まる",
+        "regionLossBad": "{max} req/s · {over}% 超過",
+        "regionLossNone": "2つ目のリージョンを追加",
+        "latency": "レイテンシ（平均 / p99）",
+        "latencyShort": "レイテンシ",
+        "errorRate": "エラー率",
+        "served": "{rps} req/s が成功",
+        "shed": "{rps} req/s を拒否",
+        "timeout": "タイムアウト"
+      },
+      "regionsTitle": "リージョン",
+      "details": {
+        "title": "なぜ？",
+        "perInstance": "インスタンスあたり",
+        "instances": "{n} インスタンス",
+        "load": "負荷",
+        "capacity": "処理能力",
+        "utilization": "使用率",
+        "latency": "処理時間（平均 / p99）",
+        "limits": "制約となるリソース",
+        "limiting": "上限",
+        "cdn": "CDNはキャッシュ済みのリクエストをユーザーの近くで返すため、サーバーには届きません。ここでは無制限として扱います。",
+        "hint": "図のコンポーネントをクリックすると、数値の計算方法が表示されます。",
+        "hotShard": "最も負荷の高いシャード（クエリの {share}）の値を表示しています。",
+        "otherShards": "他の {n} シャードはそれぞれ：インスタンスあたり {load}（{util}）"
+      },
+      "formulas": {
+        "app": {
+          "cpu": "min({workers} ワーカー, {vcpu} vCPU) × 1000 / {cpuMs} ms",
+          "network": "{netGbps} Gbps / レスポンス {responseKB} KB",
+          "ramAsync": "({usableMB} MB − {workers} ワーカー × {workerMemMB} MB) / {memMB} MB = 同時 {concurrency} 件、各 {inFlightMs} ms",
+          "ramSync": "{usableMB} MB / (ワーカーあたり {workerMemMB} + {memMB} MB) = {fit} ワーカーが収まる、1リクエスト {inFlightMs} ms",
+          "workers": "{workers} ワーカー、各1リクエスト、1リクエスト {inFlightMs} ms"
+        },
+        "lb": {
+          "throughput": "定格 {maxRps} req/s"
+        },
+        "cache": {
+          "ops": "定格 {maxOps} ops/s（シングルスレッド）"
+        },
+        "pooler": {
+          "connections": "min(プール {poolSize}, 最大 {maxConnections}) 接続 × 1000 / {queryMs} ms"
+        },
+        "replica": {
+          "cpu": "{vcpu} vCPU × 1000 / {queryMs} ms",
+          "connections": "min(最大 {maxConnections}, 同一リージョンの {servers} 台 × {workers} ワーカー × {poolSize} = {opened} 接続) × 1000 / {queryMs} ms"
+        },
+        "primary": {
+          "cpu": "{vcpu} vCPU × 1000 / {queryMs} ms",
+          "connections": "min(最大 {maxConnections}, {regions} リージョン × {servers} 台 × {workers} ワーカー × {poolSize} = {opened} 接続) × 1000 / {queryMs} ms"
+        }
+      },
+      "warnings": {
+        "failover": "リージョン {from} が停止しているため、プライマリはリージョン {to} にフェイルオーバーしました。他のリージョンの書き込みはすべてそこへ渡ります。",
+        "connectionsExceeded": "{regions} リージョン × {servers} 台 × {workers} ワーカー × {pool} 接続 = 各プライマリへ {needed} 接続ですが、データベースの上限は {max} です。超過分は拒否されます。プーラーで解決できます。",
+        "hotShard": "1つのシャードがクエリの {share} を受けています（均等なら {even}）。シャーディングは最も負荷の高いシャードまでしか効かず、他の {shards} シャードの能力は余ります。",
+        "crossRegionReads": "レプリカがないため、{regions} リージョンすべての読み取りがプライマリのリージョンへ向かい、クエリごとに往復時間を払います。",
+        "retries": "リトライが {retries} req/s（実トラフィックの +{extra}%）を上乗せしていますが、コンポーネントが飽和した後は成功数が増えません。",
+        "shedding": "ロードシェディングが {shed} req/s を即座に拒否しているため、受け入れたリクエストは待たされません。"
+      },
+      "presetList": {
+        "oneRegion": {
+          "name": "1リージョン",
+          "desc": "パート1の「リードレプリカ」構成でデータベースを 4 vCPU にしたものを1リージョンで：6台のサーバーで最大 1,200 req/s。ここでのシナリオはすべてこれを土台にします。"
+        },
+        "regionLoss": {
+          "name": "リージョン障害",
+          "desc": "3リージョンで 2,700 req/s を分担し、各75%。リージョン3が停止したため、残り2つが 1,350 req/s ずつ受け、処理能力を12%超過します。復旧するか、1リージョン分の余裕を持たせましょう。"
+        },
+        "crossRegion": {
+          "name": "リージョン越しの読み取り",
+          "desc": "3リージョンですがレプリカがないため、キャッシュミスのたびに 80 ms かけてリージョン1のプライマリへ向かいます。リモートのリージョンは 17 ms ではなく 74 ms で応答します。レプリカを追加して読み取りをローカルに留めましょう。"
+        },
+        "hotShard": {
+          "name": "ホットシャード",
+          "desc": "4シャードですが、クエリの70%が1つに集中。そのレプリカは99%、他の3つは14%にとどまり、均等なら 5,674 req/s のところ 2,026 req/s が上限になります。"
+        },
+        "retryStorm": {
+          "name": "リトライストーム",
+          "desc": "アプリ層の能力より8%多いトラフィックで、クライアントは失敗を3回リトライ。試行数はほぼ2倍になりますが、通る数は増えず、エラー率はリトライなしと同じです。"
+        },
+        "shedding": {
+          "name": "ロードシェディング",
+          "desc": "同じ過負荷ですが、ロードバランサーが処理能力の80%を超えた分を拒否し、リトライは10%の予算内。26%は即座に失敗し、残りはタイムアウトせず 32 ms で完了します。"
+        }
+      }
     }
   }
 }

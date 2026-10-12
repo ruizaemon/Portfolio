@@ -255,6 +255,224 @@
           "azure": "Icons from the Azure architecture icons."
         }
       }
+    },
+    "distributedSim": {
+      "loading": "Loading simulator…",
+      "controls": "Controls",
+      "presets": "Scenarios",
+      "customDesc": "Your own setup. Pick a scenario to reset.",
+      "enable": "Enable {name}",
+      "groups": {
+        "traffic": "Traffic",
+        "regions": "Regions",
+        "stack": "Stack per region",
+        "db": "Database",
+        "pooler": "Connection pooler",
+        "resilience": "Retries & shedding"
+      },
+      "fields": {
+        "rps": "Requests / sec",
+        "readRatio": "Reads",
+        "regionCount": "Regions",
+        "crossRegionMs": "Cross-region round trip",
+        "appCount": "Servers / region",
+        "vcpu": "App vCPU",
+        "cdn": "CDN · {hit} at the edge",
+        "cache": "Cache · {hit} hit rate",
+        "shards": "Shards",
+        "hotShare": "Hottest shard's share",
+        "replicas": "Replicas / shard / region",
+        "dbVcpu": "DB vCPU",
+        "maxConnections": "Max connections",
+        "poolSize": "Pool size / database",
+        "retries": "Retries / failed request",
+        "retryBudget": "Retry budget",
+        "shedding": "Load shedding",
+        "shedThreshold": "Admit up to"
+      },
+      "summary": {
+        "on": "on",
+        "off": "Off",
+        "traffic": "{rps} req/s · {reads} reads",
+        "oneRegion": "Single region",
+        "regions": "{live} of {count} live · {ms} ms apart",
+        "stack": "{count} × {vcpu} vCPU",
+        "db": "{shards} shards · {replicas} replicas · {vcpu} vCPU",
+        "pooler": "{n} connections / DB",
+        "resilience": "{retries} retries · shedding {shedding}"
+      },
+      "regionList": "Regions",
+      "regionChip": "Region {n}",
+      "regionHint": "Click a region to take it down; its traffic goes to the others.",
+      "stackNote": "Every region runs a copy of part 1's Read replicas stack: async workers, 10 ms of CPU per request, 3 queries per request, 4 ms per query.",
+      "poolerNote": "Workers connect to the pooler instead of the databases. It keeps a small pool of server connections to each one and queues queries until one is free.",
+      "hotShareHint": "An even split would be {even}.",
+      "retryBudgetHint": "Retries capped at 10% of the real traffic.",
+      "sheddingHint": "The load balancer rejects what exceeds the threshold instead of queueing it.",
+      "region": "Region {n}",
+      "home": "Home",
+      "down": "Down",
+      "takeDown": "Take region {n} down",
+      "bringBack": "Bring region {n} back",
+      "takeDownShort": "Take down",
+      "bringBackShort": "Bring back",
+      "rerouted": "Down · traffic rerouted",
+      "nodes": {
+        "clients": "Clients",
+        "cdn": "CDN",
+        "lb": "Load balancer",
+        "app": "App server",
+        "cache": "Cache",
+        "pooler": "Pooler",
+        "replica": "Read replica",
+        "primary": "DB primary"
+      },
+      "sub": {
+        "clients": "{rps} req/s",
+        "cdn": "{hit}% at the edge",
+        "lb": "up to {max} req/s",
+        "app": "{vcpu} vCPU · {ram} GB",
+        "cache": "{hit}% hit rate",
+        "pooler": "{n} connections / database",
+        "replica": "reads + replay",
+        "replicaSharded": "hottest shard · {share}% of queries",
+        "primaryWrites": "writes only",
+        "primaryAll": "reads + writes",
+        "primarySharded": "hottest shard · {share}% of queries"
+      },
+      "resShort": {
+        "cpu": "CPU",
+        "ram": "RAM",
+        "network": "NET",
+        "throughput": "RPS",
+        "ops": "OPS",
+        "connections": "CONN",
+        "workers": "WORK"
+      },
+      "res": {
+        "cpu": "CPU",
+        "ram": "Memory",
+        "network": "Network",
+        "throughput": "Throughput",
+        "ops": "Operations",
+        "connections": "Connections",
+        "workers": "Workers"
+      },
+      "units": {
+        "req": "req/s",
+        "query": "queries/s",
+        "op": "ops/s"
+      },
+      "unitsShort": {
+        "req": "req/s",
+        "query": "q/s",
+        "op": "ops/s"
+      },
+      "flowKinds": {
+        "read": "(read)",
+        "write": "(write)"
+      },
+      "crossRegionLabel": "+{ms} ms cross-region",
+      "bottleneckBadge": "Bottleneck",
+      "diagramLabel": "Architecture diagram, one band per region. Click a component to inspect it, or a region's button to take it down.",
+      "metrics": "Metrics",
+      "m": {
+        "traffic": "Traffic",
+        "attempts": "{n} attempts/s with retries",
+        "maxRps": "Max sustainable",
+        "headroom": "{x}× headroom",
+        "overCapacity": "{x}% over capacity",
+        "bottleneck": "Bottleneck",
+        "bottleneckHint": "first to saturate as traffic grows",
+        "none": "None",
+        "regionLoss": "If a region is lost",
+        "regionLossHint": "max sustainable with one more region down",
+        "regionLossOk": "{max} req/s · traffic still fits",
+        "regionLossBad": "{max} req/s · {over}% over",
+        "regionLossNone": "add a second region",
+        "latency": "Latency (avg / p99)",
+        "latencyShort": "Latency",
+        "errorRate": "Errors",
+        "served": "{rps} req/s succeed",
+        "shed": "{rps} req/s shed",
+        "timeout": "timeout"
+      },
+      "regionsTitle": "Region",
+      "details": {
+        "title": "Why?",
+        "perInstance": "per instance",
+        "instances": "{n} instances",
+        "load": "Load",
+        "capacity": "Capacity",
+        "utilization": "Utilization",
+        "latency": "Time here (avg / p99)",
+        "limits": "What limits it",
+        "limiting": "limit",
+        "cdn": "The CDN answers cached requests close to the user, so they never reach your servers. It's treated as unlimited.",
+        "hint": "Click a component in the diagram to see how its numbers are worked out.",
+        "hotShard": "Shown for the busiest shard, which takes {share} of the queries.",
+        "otherShards": "Each of the other {n} shards: {load} per instance ({util})"
+      },
+      "formulas": {
+        "app": {
+          "cpu": "min({workers} workers, {vcpu} vCPU) × 1000 / {cpuMs} ms",
+          "network": "{netGbps} Gbps / {responseKB} KB per response",
+          "ramAsync": "({usableMB} MB − {workers} workers × {workerMemMB} MB) / {memMB} MB = {concurrency} in flight, each for {inFlightMs} ms",
+          "ramSync": "{usableMB} MB / ({workerMemMB} + {memMB} MB per worker) = {fit} workers fit, each busy {inFlightMs} ms per request",
+          "workers": "{workers} workers, one request each, busy {inFlightMs} ms per request"
+        },
+        "lb": {
+          "throughput": "rated for {maxRps} req/s"
+        },
+        "cache": {
+          "ops": "rated for {maxOps} ops/s (single-threaded)"
+        },
+        "pooler": {
+          "connections": "min({poolSize} pool, {maxConnections} max) connections × 1000 / {queryMs} ms"
+        },
+        "replica": {
+          "cpu": "{vcpu} vCPU × 1000 / {queryMs} ms",
+          "connections": "min({maxConnections} max, {servers} local servers × {workers} workers × {poolSize} = {opened} opened) × 1000 / {queryMs} ms"
+        },
+        "primary": {
+          "cpu": "{vcpu} vCPU × 1000 / {queryMs} ms",
+          "connections": "min({maxConnections} max, {regions} regions × {servers} servers × {workers} workers × {poolSize} = {opened} opened) × 1000 / {queryMs} ms"
+        }
+      },
+      "warnings": {
+        "failover": "Region {from} is down, so the primaries have failed over to region {to}. Every other region's writes now cross to it.",
+        "connectionsExceeded": "{regions} regions × {servers} servers × {workers} workers × {pool} connections = {needed} to each primary, but the database allows {max}. The extra connections are refused; a pooler fixes this.",
+        "hotShard": "One shard takes {share} of the queries instead of an even {even}. Sharding only helps as far as the busiest shard allows; the other {shards} shards' capacity goes unused.",
+        "crossRegionReads": "No replicas, so reads from all {regions} regions go to the primary's region and pay the round trip on every query.",
+        "retries": "Retries add {retries} req/s, {extra}% on top of the real traffic, and get no more requests through once a component is saturated.",
+        "shedding": "{shed} req/s are rejected at once by load shedding, so the admitted requests don't queue."
+      },
+      "presetList": {
+        "oneRegion": {
+          "name": "One region",
+          "desc": "Part 1's Read replicas stack with a 4 vCPU database, in one region: 6 servers take up to 1,200 req/s. Every scenario here builds on it."
+        },
+        "regionLoss": {
+          "name": "Region loss",
+          "desc": "Three regions share 2,700 req/s at 75% each. Region 3 is down, so the other two get 1,350 req/s each, 12% more than they can take. Bring it back, or keep a region's worth of headroom."
+        },
+        "crossRegion": {
+          "name": "Cross-region reads",
+          "desc": "Three regions but no replicas, so every cache miss crosses 80 ms to the primary in region 1. The remote regions answer in 74 ms instead of 17 ms. Add a replica to keep reads local."
+        },
+        "hotShard": {
+          "name": "Hot shard",
+          "desc": "Four shards, but 70% of the queries hit one of them. Its replica is at 99% while the other three sit at 14%, so the limit is 2,026 req/s instead of 5,674 with an even split."
+        },
+        "retryStorm": {
+          "name": "Retry storm",
+          "desc": "8% more traffic than the app tier can take, and clients retry every failure 3 times. Attempts almost double, nothing more gets through, and the error rate is the same as with no retries."
+        },
+        "shedding": {
+          "name": "Load shedding",
+          "desc": "The same overload, but the load balancer rejects what exceeds 80% of capacity and retries stay within a 10% budget. 26% of requests fail fast, and the rest finish in 32 ms instead of timing out."
+        }
+      }
     }
   }
 }

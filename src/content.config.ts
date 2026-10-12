@@ -40,7 +40,7 @@ const tools = defineCollection({
     updatedDate: z.coerce.date().optional(),
     tags: z.array(z.string()).default([]),
     /** Which interactive component to mount (see components/tools/ToolMount.astro). */
-    component: z.enum(['capacity-sim']),
+    component: z.enum(['capacity-sim', 'distributed-sim']),
   }),
 });
 
