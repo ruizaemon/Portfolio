@@ -79,6 +79,16 @@
         "workers": "Workers / server",
         "workerMemMB": "Memory / worker"
       },
+      "summary": {
+        "off": "Off",
+        "traffic": "{rps} req/s · {reads} reads",
+        "cdn": "{hit} at the edge",
+        "lb": "up to {rps} req/s",
+        "app": "{count} × {vcpu} vCPU · {ram} GB",
+        "cache": "{hit} hit rate",
+        "db": "{vcpu} vCPU · {ms} ms / query",
+        "dbReplicas": " · +{n} replicas"
+      },
       "needsLb": "Turn on the load balancer to run more than one server.",
       "nodes": {
         "clients": "Clients",

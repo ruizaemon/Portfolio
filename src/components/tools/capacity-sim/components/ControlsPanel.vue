@@ -4,12 +4,29 @@ import type { ServerType, SimConfig } from '../engine/model';
 import { workersThatFit } from '../engine/simulate';
 import { PRESET_IDS, type PresetId } from '../engine/presets';
 import SliderField from './SliderField.vue';
+import ControlGroup from './ControlGroup.vue';
 import { useSimI18n } from './context';
 
 defineProps<{ activePreset: PresetId | null }>();
 const emit = defineEmits<{ preset: [id: PresetId] }>();
 const config = defineModel<SimConfig>('config', { required: true });
 const { t, num, pct } = useSimI18n();
+
+/** One line per group header, so a folded group still shows what's set. */
+const summary = computed(() => {
+  const c = config.value;
+  const off = t('summary.off');
+  return {
+    traffic: t('summary.traffic', { rps: num(c.traffic.rps), reads: pct(c.traffic.readRatio) }),
+    cdn: c.cdn.enabled ? t('summary.cdn', { hit: pct(c.cdn.hitRatio) }) : off,
+    lb: c.lb.enabled ? t('summary.lb', { rps: num(c.lb.maxRps) }) : off,
+    app: t('summary.app', { count: c.app.count, vcpu: c.app.vcpu, ram: c.app.ramGB }),
+    cache: c.cache.enabled ? t('summary.cache', { hit: pct(c.cache.hitRatio) }) : off,
+    db:
+      t('summary.db', { vcpu: c.db.vcpu, ms: c.db.queryMs }) +
+      (c.db.replicas > 0 ? t('summary.dbReplicas', { n: c.db.replicas }) : ''),
+  };
+});
 
 /** Most worker processes one server's RAM can hold with the current memory settings. */
 const maxWorkers = computed(() => workersThatFit(config.value.app));
@@ -53,8 +70,8 @@ const CACHE_MAX_OPS = [10_000, 25_000, 50_000, 100_000, 200_000, 500_000, 1_000_
 
 <template>
   <div class="controls">
-    <section class="group">
-      <h3 class="group-title">{{ t('presets') }}</h3>
+    <section class="scenarios">
+      <h3 class="scenarios-title">{{ t('presets') }}</h3>
       <div class="presets" role="group" :aria-label="t('presets')">
         <button
           v-for="id in PRESET_IDS"
@@ -73,36 +90,34 @@ const CACHE_MAX_OPS = [10_000, 25_000, 50_000, 100_000, 200_000, 500_000, 1_000_
       </p>
     </section>
 
-    <section class="group">
-      <h3 class="group-title">{{ t('groups.traffic') }}</h3>
+    <ControlGroup :title="t('groups.traffic')" :summary="summary.traffic">
       <SliderField v-model="config.traffic.rps" :label="t('fields.rps')" log :min="1" :max="1_000_000" />
       <SliderField v-model="config.traffic.readRatio" :label="t('fields.readRatio')" :min="0" :max="1" :step="0.01" :format="pct" />
       <SliderField v-model="config.traffic.responseKB" :label="t('fields.responseKB')" :options="RESPONSE_KB" :format="unit('KB')" />
       <SliderField v-model="config.traffic.queriesPerRequest" :label="t('fields.queriesPerRequest')" :min="1" :max="20" />
-    </section>
+    </ControlGroup>
 
-    <section class="group">
-      <label class="group-title toggle">
-        <span>{{ t('groups.cdn') }}</span>
-        <input v-model="config.cdn.enabled" type="checkbox" role="switch" :aria-label="t('enable', { name: t('groups.cdn') })" />
-      </label>
-      <template v-if="config.cdn.enabled">
-        <SliderField v-model="config.cdn.hitRatio" :label="t('fields.cdnHitRatio')" :min="0" :max="0.99" :step="0.01" :format="pct" />
-      </template>
-    </section>
+    <ControlGroup
+      with-switch
+      v-model:enabled="config.cdn.enabled"
+      :title="t('groups.cdn')"
+      :summary="summary.cdn"
+      :toggle-label="t('enable', { name: t('groups.cdn') })"
+    >
+      <SliderField v-model="config.cdn.hitRatio" :label="t('fields.cdnHitRatio')" :min="0" :max="0.99" :step="0.01" :format="pct" />
+    </ControlGroup>
 
-    <section class="group">
-      <label class="group-title toggle">
-        <span>{{ t('groups.lb') }}</span>
-        <input v-model="config.lb.enabled" type="checkbox" role="switch" :aria-label="t('enable', { name: t('groups.lb') })" />
-      </label>
-      <template v-if="config.lb.enabled">
-        <SliderField v-model="config.lb.maxRps" :label="t('fields.lbMaxRps')" :options="LB_MAX_RPS" :format="unit('req/s')" />
-      </template>
-    </section>
+    <ControlGroup
+      with-switch
+      v-model:enabled="config.lb.enabled"
+      :title="t('groups.lb')"
+      :summary="summary.lb"
+      :toggle-label="t('enable', { name: t('groups.lb') })"
+    >
+      <SliderField v-model="config.lb.maxRps" :label="t('fields.lbMaxRps')" :options="LB_MAX_RPS" :format="unit('req/s')" />
+    </ControlGroup>
 
-    <section class="group">
-      <h3 class="group-title">{{ t('groups.app') }}</h3>
+    <ControlGroup :title="t('groups.app')" :summary="summary.app">
       <SliderField
         v-model="config.app.count"
         :label="t('fields.appCount')"
@@ -164,97 +179,90 @@ const CACHE_MAX_OPS = [10_000, 25_000, 50_000, 100_000, 200_000, 500_000, 1_000_
       <SliderField v-model="config.app.memMB" :label="t('fields.memMB')" :options="MEM_MB" :format="memory" />
       <SliderField v-model="config.app.netGbps" :label="t('fields.netGbps')" :options="NET_GBPS" :format="unit('Gbps')" />
       <SliderField v-model="config.app.poolSize" :label="t('fields.poolSize')" :min="1" :max="100" />
-    </section>
+    </ControlGroup>
 
-    <section class="group">
-      <label class="group-title toggle">
-        <span>{{ t('groups.cache') }}</span>
-        <input v-model="config.cache.enabled" type="checkbox" role="switch" :aria-label="t('enable', { name: t('groups.cache') })" />
-      </label>
-      <template v-if="config.cache.enabled">
-        <SliderField v-model="config.cache.hitRatio" :label="t('fields.cacheHitRatio')" :min="0" :max="0.99" :step="0.01" :format="pct" />
-        <SliderField v-model="config.cache.maxOps" :label="t('fields.cacheMaxOps')" :options="CACHE_MAX_OPS" :format="unit('ops/s')" />
-      </template>
-    </section>
+    <ControlGroup
+      with-switch
+      v-model:enabled="config.cache.enabled"
+      :title="t('groups.cache')"
+      :summary="summary.cache"
+      :toggle-label="t('enable', { name: t('groups.cache') })"
+    >
+      <SliderField v-model="config.cache.hitRatio" :label="t('fields.cacheHitRatio')" :min="0" :max="0.99" :step="0.01" :format="pct" />
+      <SliderField v-model="config.cache.maxOps" :label="t('fields.cacheMaxOps')" :options="CACHE_MAX_OPS" :format="unit('ops/s')" />
+    </ControlGroup>
 
-    <section class="group">
-      <h3 class="group-title">{{ t('groups.db') }}</h3>
+    <ControlGroup :title="t('groups.db')" :summary="summary.db">
       <SliderField v-model="config.db.vcpu" :label="t('fields.dbVcpu')" :options="VCPU" />
       <SliderField v-model="config.db.queryMs" :label="t('fields.queryMs')" :options="QUERY_MS" :format="unit('ms')" />
       <SliderField v-model="config.db.maxConnections" :label="t('fields.maxConnections')" :options="MAX_CONNECTIONS" />
       <SliderField v-model="config.db.replicas" :label="t('fields.replicas')" :min="0" :max="10" />
-    </section>
+    </ControlGroup>
   </div>
 </template>
 
 <style scoped>
-.group + .group {
-  margin-top: 1.125rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--panel-border);
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
 }
 
-.group-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.scenarios {
+  margin-bottom: 0.375rem;
+}
+
+.scenarios-title {
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--color-text-muted);
-  margin: 0 0 0.75rem;
+  margin: 0 0 0.625rem;
 }
 
-.toggle {
-  cursor: pointer;
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
 }
 
-/* Only the header row shows while a component is off */
-.toggle:last-child {
-  margin-bottom: 0;
-}
-
-.toggle input {
-  appearance: none;
-  position: relative;
-  width: 2.25rem;
-  height: 1.25rem;
-  margin: 0;
+.preset {
+  font: inherit;
+  font-size: 0.75rem;
+  padding: 0.3125rem 0.625rem;
   border-radius: 999px;
-  background: var(--panel-border);
+  border: 1px solid var(--panel-border);
+  background: transparent;
+  color: var(--color-text);
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
 }
 
-.toggle input::after {
-  content: '';
-  position: absolute;
-  top: 0.1875rem;
-  left: 0.1875rem;
-  width: 0.875rem;
-  height: 0.875rem;
-  border-radius: 50%;
-  background: var(--color-text);
-  transition: transform 0.2s ease;
+.preset:hover {
+  border-color: var(--color-primary);
 }
 
-.toggle input:checked {
-  background: var(--color-primary);
+.preset.active {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background-color: color-mix(in srgb, var(--color-primary) 12%, transparent);
 }
 
-.toggle input:checked::after {
-  transform: translateX(1rem);
-  background: var(--color-background);
-}
-
-.toggle input:focus-visible {
+.preset:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
+.preset-desc {
+  margin: 0.625rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}
+
 .server-type {
-  margin: 0.875rem 0;
+  margin: 0.75rem 0;
 }
 
 .server-type-label {
@@ -308,7 +316,7 @@ const CACHE_MAX_OPS = [10_000, 25_000, 50_000, 100_000, 200_000, 500_000, 1_000_
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  margin: 0.375rem 0 0.875rem;
+  margin: 0.25rem 0 0.75rem;
 }
 
 .hint-row {
@@ -352,47 +360,5 @@ const CACHE_MAX_OPS = [10_000, 25_000, 50_000, 100_000, 200_000, 500_000, 1_000_
 .hint-button:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
-}
-
-.presets {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.375rem;
-}
-
-.preset {
-  font: inherit;
-  font-size: 0.75rem;
-  padding: 0.3125rem 0.625rem;
-  border-radius: 999px;
-  border: 1px solid var(--panel-border);
-  background: transparent;
-  color: var(--color-text);
-  cursor: pointer;
-  transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
-}
-
-.preset:hover {
-  border-color: var(--color-primary);
-}
-
-.preset.active {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  background-color: color-mix(in srgb, var(--color-primary) 12%, transparent);
-}
-
-.preset-desc {
-  margin: 0.75rem 0 0;
-  font-size: 0.8125rem;
-  line-height: 1.6;
-  color: var(--color-text-muted);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .toggle input,
-  .toggle input::after {
-    transition: none;
-  }
 }
 </style>

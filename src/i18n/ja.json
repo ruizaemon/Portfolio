@@ -79,6 +79,16 @@
         "workers": "サーバーあたりのワーカー数",
         "workerMemMB": "ワーカーあたりのメモリ"
       },
+      "summary": {
+        "off": "オフ",
+        "traffic": "{rps} req/s · 読み取り {reads}",
+        "cdn": "エッジ配信 {hit}",
+        "lb": "最大 {rps} req/s",
+        "app": "{count} × {vcpu} vCPU · {ram} GB",
+        "cache": "ヒット率 {hit}",
+        "db": "{vcpu} vCPU · クエリ {ms} ms",
+        "dbReplicas": " · レプリカ +{n}"
+      },
       "needsLb": "複数のサーバーを使うにはロードバランサーを有効にしてください。",
       "nodes": {
         "clients": "クライアント",

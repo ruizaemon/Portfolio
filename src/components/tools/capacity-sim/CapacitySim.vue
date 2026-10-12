@@ -121,7 +121,7 @@ function toggle(id: NodeId) {
 
 @media (min-width: 900px) {
   .sim {
-    grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
+    grid-template-columns: minmax(300px, 340px) minmax(0, 1fr);
     grid-template-rows: auto auto 1fr;
     grid-template-areas:
       'controls diagram'
