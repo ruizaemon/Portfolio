@@ -99,6 +99,8 @@ It helps to think about the network layers here. Routers along the internet path
 4. **Load balancer to app server:** the load balancer now acts as a brand-new client. It opens its own TCP connection, from its own private IP to the app server's private IP and port, inside your private network. Every layer is rebuilt from scratch: new Ethernet frames, a new IP header with the load balancer as source and the app server as destination, new TCP ports, and a new HTTP request that the load balancer writes itself. It keeps these back-end connections open and reuses them for many requests.
 5. **Response:** the app server replies on the second connection. The load balancer reads the response, then writes it to the browser on the first connection, encrypted with TLS again.
 
+<div data-diagram="lb-request-flow"></div>
+
 So the original packets are never forwarded at all. There are two independent connections, and the load balancer copies HTTP data between them, which is why this kind is also called a **reverse proxy**. One visible consequence: the app server sees the load balancer's IP as the source address, not the user's. The load balancer adds an `X-Forwarded-For` header carrying the user's real IP, and `X-Forwarded-Proto: https` to say the user connected securely, so the app can still log, geolocate and rate-limit by client.
 
 <details class="explainer">
@@ -111,6 +113,8 @@ Both sit in the middle of an HTTP conversation and work the same way: end the in
 
 A forward proxy hides many clients behind one address that servers see; a reverse proxy hides many servers behind one address that clients see. The same software (Nginx, HAProxy, Squid) can be configured as either.
 
+<div data-diagram="proxy-vs-reverse"></div>
+
 </details>
 
 ##### Layer 7 vs layer 4
@@ -122,9 +126,13 @@ Load balancers come in two main kinds, named after the highest network layer the
 
 Put side by side: a router passes packets along with layer 3 intact, a layer 4 load balancer passes them along with layer 3 rewritten, and a layer 7 load balancer ends the conversation and starts a new one.
 
+<div data-diagram="lb-layers-compared"></div>
+
 Why does the layer 4 kind rewrite addresses at all? Because the client addressed its packets to the load balancer's IP, which is what DNS gave it, and the app servers have different IPs. A router only ever moves a packet toward the destination written on it, so as far as the network is concerned the packet has already arrived. To push it one hop further, the load balancer has to make it look as if it had been sent to the app server all along, by replacing the destination IP and port. Otherwise the network would keep delivering it back to the load balancer, and even a packet forced onto the server's network would be dropped by its kernel, since an IP stack discards packets not addressed to one of its own interfaces. This is the same trick a home router uses for port forwarding.
 
 Two details follow from this. First, TCP only works if every packet of a connection reaches the same machine, so the load balancer decides once, on the first packet, and records "this client IP and port, to this destination, goes to server B". Every later packet in that flow is rewritten the same way. That small table is all the state it keeps. Second, the reply has to come back through it: the client's TCP stack is waiting on an answer from the load balancer's IP, the address it connected to, so the server's reply gets its source address rewritten back on the way out. Both directions are translated, which is why it is a stateful NAT and not plain routing. On AWS, the NLB's **client IP preservation** setting keeps the client's real IP as the source, so the app server sees it with no extra header. With it off, the NLB rewrites the source to its own address as well and can prepend a small **PROXY protocol** header carrying the client's IP, the layer 4 equivalent of `X-Forwarded-For`.
+
+<div data-diagram="lb-layer4-nat"></div>
 
 | Cloud | Layer 7 (HTTP) | Layer 4 (TCP/UDP) |
 | --- | --- | --- |

@@ -62,6 +62,35 @@ const tags = frontmatter.tags ?? [];
   </article>
 </BaseLayout>
 
+<script>
+  // Sections of the write-up are <details class="fold"> (see rehypeFoldSections).
+  // A link to a heading inside a folded section would otherwise scroll to nothing,
+  // so open every folded ancestor of the target before the browser jumps to it.
+  function openFoldsFor(hash: string) {
+    if (!hash || hash.length < 2) return;
+    let target: Element | null = null;
+    try {
+      target = document.getElementById(decodeURIComponent(hash.slice(1)));
+    } catch {
+      return;
+    }
+    let el = target?.parentElement ?? null;
+    while (el) {
+      if (el instanceof HTMLDetailsElement && el.classList.contains('fold')) el.open = true;
+      el = el.parentElement;
+    }
+  }
+
+  openFoldsFor(location.hash);
+  window.addEventListener('hashchange', () => openFoldsFor(location.hash));
+  document.addEventListener('click', (event) => {
+    const link = (event.target as Element | null)?.closest('a[href*="#"]');
+    if (!(link instanceof HTMLAnchorElement)) return;
+    if (link.origin !== location.origin || link.pathname !== location.pathname) return;
+    openFoldsFor(link.hash);
+  });
+</script>
+
 <style>
   .tool-article {
     width: 100%;
@@ -327,6 +356,212 @@ const tags = frontmatter.tags ?? [];
     }
   }
 
+  /* Diagrams: inline SVG from src/diagrams, injected by rehypeDiagrams. Shapes
+     carry d-* classes and take every colour from the theme variables here */
+  .tool-content :global(figure.diagram) {
+    margin: 1.75rem 0 2rem;
+    overflow-x: auto;
+  }
+
+  .tool-content :global(figure.diagram svg) {
+    display: block;
+    width: 100%;
+    min-width: 640px;
+    height: auto;
+    font-family: inherit;
+  }
+
+  .tool-content :global(figure.diagram figcaption) {
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+  }
+
+  .tool-content :global(.d-box) {
+    fill: color-mix(in srgb, var(--color-text) 4%, transparent);
+    stroke: var(--color-text);
+    stroke-opacity: 0.35;
+    stroke-width: 1.25;
+  }
+
+  .tool-content :global(.d-box-owner) {
+    stroke: var(--color-primary);
+    stroke-opacity: 1;
+    fill: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  }
+
+  .tool-content :global(.d-card) {
+    fill: color-mix(in srgb, var(--color-text) 3%, transparent);
+    stroke: var(--color-text);
+    stroke-opacity: 0.18;
+  }
+
+  .tool-content :global(.d-text) {
+    fill: var(--color-text);
+    font-size: 12px;
+  }
+
+  .tool-content :global(.d-title) {
+    fill: var(--color-text);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .tool-content :global(.d-muted) {
+    fill: var(--color-text-muted);
+    font-size: 11px;
+  }
+
+  .tool-content :global(.d-pink) {
+    fill: var(--color-pink);
+    font-weight: 600;
+  }
+
+  .tool-content :global(.d-primary-text) {
+    fill: var(--color-primary);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .tool-content :global(.d-secondary-text) {
+    fill: var(--color-secondary);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .tool-content :global(.d-line) {
+    fill: none;
+    stroke: var(--color-text);
+    stroke-opacity: 0.5;
+    stroke-width: 1.5;
+  }
+
+  .tool-content :global(.d-line.primary) {
+    stroke: var(--color-primary);
+    stroke-opacity: 1;
+  }
+
+  .tool-content :global(.d-line.secondary) {
+    stroke: var(--color-secondary);
+    stroke-opacity: 1;
+  }
+
+  .tool-content :global(.d-dashed) {
+    stroke-dasharray: 5 4;
+  }
+
+  .tool-content :global(.d-arrow) {
+    fill: var(--color-text);
+    fill-opacity: 0.6;
+  }
+
+  .tool-content :global(.d-arrow.primary) {
+    fill: var(--color-primary);
+    fill-opacity: 1;
+  }
+
+  .tool-content :global(.d-arrow.secondary) {
+    fill: var(--color-secondary);
+    fill-opacity: 1;
+  }
+
+  /* Cells of the "which layers each device touches" grid */
+  .tool-content :global(.d-cell) {
+    stroke: var(--color-text);
+    stroke-opacity: 0.12;
+  }
+
+  .tool-content :global(.d-cell-pass),
+  .tool-content :global(.d-cell-hop) {
+    fill: color-mix(in srgb, var(--color-text) 4%, transparent);
+  }
+
+  .tool-content :global(.d-cell-read) {
+    fill: color-mix(in srgb, var(--color-secondary) 16%, transparent);
+  }
+
+  .tool-content :global(.d-cell-rewrite) {
+    fill: color-mix(in srgb, var(--color-pink) 16%, transparent);
+  }
+
+  .tool-content :global(.d-cell-end) {
+    fill: color-mix(in srgb, var(--color-primary) 16%, transparent);
+  }
+
+  .tool-content :global(.d-cell-text) {
+    fill: var(--color-text);
+    font-size: 11px;
+  }
+
+  /* Collapsible sections: rehypeFoldSections wraps each h2/h3 section in
+     <details class="fold"> with the heading in its <summary>. The heading keeps
+     its usual look and gains a chevron; clicking it folds the section */
+  .tool-content :global(details.fold > summary) {
+    display: block;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .tool-content :global(details.fold > summary::-webkit-details-marker) {
+    display: none;
+  }
+
+  .tool-content :global(details.fold > summary > :is(h2, h3)) {
+    position: relative;
+    padding-right: 1.5rem;
+  }
+
+  /* Chevron that points down when open and right when closed */
+  .tool-content :global(details.fold > summary > :is(h2, h3)::after) {
+    content: '';
+    position: absolute;
+    right: 0.25rem;
+    top: 50%;
+    width: 0.5rem;
+    height: 0.5rem;
+    margin-top: -0.4rem;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    opacity: 0.6;
+    transform: rotate(45deg);
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+
+  /* The h3 has a divider and padding above it, so its box centre sits low */
+  .tool-content :global(details.fold > summary > h3::after) {
+    margin-top: 0.35rem;
+  }
+
+  .tool-content :global(details.fold:not([open]) > summary > :is(h2, h3)::after) {
+    transform: rotate(-45deg);
+  }
+
+  .tool-content :global(details.fold > summary:hover > :is(h2, h3)::after) {
+    opacity: 1;
+  }
+
+  .tool-content :global(details.fold > summary:focus-visible) {
+    outline: none;
+  }
+
+  .tool-content :global(details.fold > summary:focus-visible > :is(h2, h3)) {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 4px;
+    border-radius: 4px;
+  }
+
+  /* A folded h3 keeps its divider but drops the space its body used to leave below */
+  .tool-content :global(details.fold:not([open]) > summary > h3) {
+    margin-bottom: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tool-content :global(details.fold > summary > :is(h2, h3)::after) {
+      transition: none;
+    }
+  }
+
   /* Keep a heading visually attached to its text */
   .tool-content :global(h4 + p),
   .tool-content :global(h5 + p) {
@@ -334,7 +569,9 @@ const tags = frontmatter.tags ?? [];
   }
 
   .tool-content :global(h3 + h4),
-  .tool-content :global(h3 + p + h4) {
+  .tool-content :global(h3 + p + h4),
+  .tool-content :global(details.fold-3 > .fold-body > h4:first-child),
+  .tool-content :global(details.fold-3 > .fold-body > p:first-child + h4) {
     margin-top: 1.25rem;
   }
 
