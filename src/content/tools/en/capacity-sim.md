@@ -4,7 +4,7 @@ description: Build a simple architecture — servers, load balancer, cache, data
 image: /tools/capacity-sim/thumb.svg
 lang: en
 order: 1
-updatedDate: 2026-10-04
+updatedDate: 2026-10-12
 tags: ['System Design', 'Visualization', 'Vue 3', 'TypeScript']
 component: capacity-sim
 ---
@@ -87,14 +87,44 @@ In the simulator, this share is removed from the traffic before it reaches the l
 
 ### Load balancer
 
-A load balancer sits in front of your app servers and spreads incoming requests across them. Clients only ever see one address, so you can add, remove or replace servers behind it without anyone noticing. Without one, clients can only reach a single server, which is why the simulator only lets you add servers once the load balancer is on.
+A load balancer sits in front of your app servers and spreads incoming requests across them. Clients only ever see one hostname, so you can add, remove or replace servers behind it without anyone noticing. Without one, clients can only reach a single server, which is why the simulator only lets you add servers once the load balancer is on.
+
+##### How it works
+
+It helps to think about the network layers here. Routers along the internet path replace the layer 2 (Ethernet) headers at every hop but leave layers 3 and 4 (IP addresses and ports) alone, because those belong to the two ends of a conversation. A layer 7 load balancer is not a smarter router: it is one of those ends. It is a full computer with its own IP address, TCP stack and HTTP server, and it ends the client's conversation completely before starting a separate one with an app server. One request goes like this:
+
+1. **DNS:** the user's browser looks up your hostname and gets the load balancer's public IP. (The hostname actually resolves to a few IPs, one per data center, but each is a load balancer node.)
+2. **Client to load balancer:** the browser opens a TCP connection to that IP on port 443 and does the TLS handshake with the load balancer, which holds your certificate. The packets are unwrapped all the way up: the network card strips the Ethernet frame, the kernel reassembles the TCP stream, TLS decrypts it, and an HTTP parser reads the request line, headers and body. There are no separate layer 5 or 6 headers in practice; TLS is the closest thing, and it ends here too.
+3. **Routing decision:** with a plain HTTP request in memory, the load balancer picks an app server using its routing rules, its balancing algorithm and its health checks (all described below).
+4. **Load balancer to app server:** the load balancer now acts as a brand-new client. It opens its own TCP connection, from its own private IP to the app server's private IP and port, inside your private network. Every layer is rebuilt from scratch: new Ethernet frames, a new IP header with the load balancer as source and the app server as destination, new TCP ports, and a new HTTP request that the load balancer writes itself. It keeps these back-end connections open and reuses them for many requests.
+5. **Response:** the app server replies on the second connection. The load balancer reads the response, then writes it to the browser on the first connection, encrypted with TLS again.
+
+So the original packets are never forwarded at all. There are two independent connections, and the load balancer copies HTTP data between them, which is why this kind is also called a **reverse proxy**. One visible consequence: the app server sees the load balancer's IP as the source address, not the user's. The load balancer adds an `X-Forwarded-For` header carrying the user's real IP, and `X-Forwarded-Proto: https` to say the user connected securely, so the app can still log, geolocate and rate-limit by client.
+
+<details class="explainer">
+<summary>Proxy vs reverse proxy</summary>
+
+Both sit in the middle of an HTTP conversation and work the same way: end the incoming connection, parse the request, open a new connection, send a new request, and copy the response back. The difference is who they work for.
+
+- A **forward proxy** works for the client. The client is configured to send everything through it, and the server never knows it exists. Think of an office that routes all browsing through one machine to filter or log it.
+- A **reverse proxy** works for the server. DNS points the hostname at it, so the client thinks it *is* the server and never learns about the machines behind it. A load balancer and a CDN edge are both reverse proxies.
+
+A forward proxy hides many clients behind one address that servers see; a reverse proxy hides many servers behind one address that clients see. The same software (Nginx, HAProxy, Squid) can be configured as either.
+
+</details>
 
 ##### Layer 7 vs layer 4
 
-Load balancers come in two main kinds, named after the network layer they work at:
+Load balancers come in two main kinds, named after the highest network layer they work at:
 
-- **Layer 7 (application):** understands HTTP. It handles the HTTPS connection, reads each request, and can route by URL path, hostname or headers, for example sending `/api/*` to the API servers and everything else to the website. Most web apps use this kind.
-- **Layer 4 (network):** only sees IP addresses and ports, and passes connections through without reading them. That makes it faster and able to handle far more traffic, and it works for any protocol, not just HTTP (game servers, MQTT, databases). But it can't route by URL.
+- **Layer 7 (application):** understands HTTP. It handles the HTTPS connection, reads each request, and can route by URL path, hostname or headers, for example sending `/api/*` to the API servers and everything else to the website. This is the kind described above, and most web apps use it.
+- **Layer 4 (transport):** only sees IP addresses and ports, and never reassembles the conversation. It works on **flows**: when the first packet of a new connection arrives, it picks a server and then rewrites the destination address on every packet of that flow to that server, much like a stateful NAT (explained below). The TCP connection and the TLS handshake are between the client and the app server directly. Because it never reads the stream, it can't route by URL, but it is faster, handles far more traffic, and works for any protocol, not just HTTP (game servers, MQTT, databases).
+
+Put side by side: a router passes packets along with layer 3 intact, a layer 4 load balancer passes them along with layer 3 rewritten, and a layer 7 load balancer ends the conversation and starts a new one.
+
+Why does the layer 4 kind rewrite addresses at all? Because the client addressed its packets to the load balancer's IP, which is what DNS gave it, and the app servers have different IPs. A router only ever moves a packet toward the destination written on it, so as far as the network is concerned the packet has already arrived. To push it one hop further, the load balancer has to make it look as if it had been sent to the app server all along, by replacing the destination IP and port. Otherwise the network would keep delivering it back to the load balancer, and even a packet forced onto the server's network would be dropped by its kernel, since an IP stack discards packets not addressed to one of its own interfaces. This is the same trick a home router uses for port forwarding.
+
+Two details follow from this. First, TCP only works if every packet of a connection reaches the same machine, so the load balancer decides once, on the first packet, and records "this client IP and port, to this destination, goes to server B". Every later packet in that flow is rewritten the same way. That small table is all the state it keeps. Second, the reply has to come back through it: the client's TCP stack is waiting on an answer from the load balancer's IP, the address it connected to, so the server's reply gets its source address rewritten back on the way out. Both directions are translated, which is why it is a stateful NAT and not plain routing. On AWS, the NLB's **client IP preservation** setting keeps the client's real IP as the source, so the app server sees it with no extra header. With it off, the NLB rewrites the source to its own address as well and can prepend a small **PROXY protocol** header carrying the client's IP, the layer 4 equivalent of `X-Forwarded-For`.
 
 | Cloud | Layer 7 (HTTP) | Layer 4 (TCP/UDP) |
 | --- | --- | --- |
@@ -108,6 +138,7 @@ On AWS, these all belong to the **Elastic Load Balancing (ELB)** family, which t
 
 - **Health checks:** the load balancer regularly calls each server, for example `GET /health`, and stops sending traffic to any server that fails, until it recovers. This is what makes a crashed server invisible to users, as long as the others have room. A good health check is cheap but checks the essentials, like the database connection.
 - **How it picks a server:** **round robin** simply takes turns, but ignores how busy each server is. **Least outstanding requests** (least connections on some load balancers) sends each request to the server with the fewest requests in progress, which works better when some requests are much slower than others.
+- **The client's IP is in a header:** because a layer 7 load balancer opens its own connection to the app server, the source address the app sees is the load balancer's. Read the user's IP from `X-Forwarded-For` instead, and only trust that header when the request really came through your load balancer, since any client can send one. Logging, rate limiting and "is this request HTTPS?" checks all go wrong if you forget this.
 - **Keep app servers stateless:** any request can land on any server, so don't keep sessions or uploaded files in one server's memory or disk. Store sessions in the cache or database, and files in object storage such as Amazon S3. **Sticky sessions**, which pin a user to one server with a cookie, work around this, but they spread load unevenly and lose the session when that server goes away.
 - **HTTPS handled at the load balancer:** a layer 7 load balancer usually decrypts HTTPS using free managed certificates (such as from AWS Certificate Manager), so app servers receive plain HTTP inside your private network and don't spend CPU on encryption.
 - **Connection draining:** when a server is removed, during a deploy or when scaling in, the load balancer stops sending it new requests but lets the ones in progress finish (the ALB waits up to 300 seconds by default). That's what makes zero-downtime deploys possible.

@@ -112,7 +112,7 @@ function toggle(id: NodeId) {
   grid-area: details;
 }
 
-:global([data-theme='light']) .sim {
+[data-theme='light'] .sim {
   --panel-border: rgba(0, 0, 0, 0.18);
   --panel-bg: rgba(0, 0, 0, 0.02);
   --node-bg: #ffffff;
