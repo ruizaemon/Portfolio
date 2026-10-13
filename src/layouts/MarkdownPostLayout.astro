@@ -1,6 +1,8 @@
 ---
 import BaseLayout from './BaseLayout.astro';
 import { t } from '@/utils/i18n';
+// Shared write-up styles: table of contents, explainers, tables, diagrams
+import '@/styles/writeup.css';
 
 interface Props {
   frontmatter: {
@@ -56,7 +58,7 @@ const locale = frontmatter.lang;
       </div>
     </header>
     <div class="post-divider animate-fadeInUp" style="animation-delay: 0.2s;"></div>
-    <div class="post-content animate-fadeInUp" style="animation-delay: 0.3s;">
+    <div class="post-content writeup animate-fadeInUp" style="animation-delay: 0.3s;">
       <slot />
     </div>
   </article>
@@ -64,6 +66,9 @@ const locale = frontmatter.lang;
 
 <style>
   .post-article {
+    /* An explicit width: as a flex item with auto margins the article would otherwise
+       size to its content, and one long unbreakable line could widen the whole page */
+    width: 100%;
     max-width: 85ch;
     margin: 0 auto;
     padding: 0;
@@ -175,12 +180,32 @@ const locale = frontmatter.lang;
     font-size: 0.9em;
   }
 
+  /* A long inline command (`openssl s_client -connect …`) may break mid-token on narrow screens */
+  .post-content :global(:not(pre) > code) {
+    overflow-wrap: anywhere;
+  }
+
+  /* Code blocks (syntax-highlighted by Astro) */
   .post-content :global(pre) {
     background-color: var(--color-background);
-    padding: 1rem;
+    padding: 1rem 1.25rem;
     border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
     overflow-x: auto;
     margin-bottom: 1.5rem;
+    font-size: 0.875rem;
+    line-height: 1.6;
+  }
+
+  :global([data-theme="light"]) .post-content :global(pre) {
+    border-color: rgba(0, 0, 0, 0.15);
+  }
+
+  /* Inside a block the inline-code tint would paint every line; the block is the box */
+  .post-content :global(pre code) {
+    background: none;
+    padding: 0;
+    font-size: inherit;
   }
 
   .post-content :global(ul),
