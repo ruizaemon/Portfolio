@@ -1,5 +1,5 @@
 /**
- * Replaces diagram placeholders in tool write-ups with inline SVG.
+ * Replaces diagram placeholders in tool write-ups and blog posts with inline SVG.
  *
  * In the markdown, a line such as
  *
@@ -7,7 +7,7 @@
  *
  * becomes <figure class="diagram">…svg…<figcaption>…</figcaption></figure>,
  * drawn by the matching entry in src/diagrams with the labels for the page's
- * language (taken from the file path: content/tools/en/… or …/ja/…).
+ * language (taken from the file path: content/tools/en/…, content/blog/ja/…).
  *
  * Astro runs rehype-raw after user plugins, so at this point the placeholder
  * is still a `raw` node holding the HTML text; we rewrite that text and let
@@ -29,8 +29,9 @@ function walk(node, visit) {
 export default function rehypeDiagrams() {
   return (tree, file) => {
     const path = String(file.path ?? file.history?.[0] ?? '').replace(/\\/g, '/');
-    if (!path.includes('/src/content/tools/')) return;
-    const lang = /\/content\/tools\/(en|ja)\//.exec(path)?.[1] ?? 'en';
+    const match = /\/src\/content\/(?:tools|blog)\/(en|ja)\//.exec(path);
+    if (!match) return;
+    const lang = match[1];
 
     walk(tree, (node) => {
       if (node.type !== 'raw') return;
