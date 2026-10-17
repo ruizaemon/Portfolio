@@ -16,6 +16,8 @@ const allPosts = await getCollection('blog');
 const posts = allPosts
   .filter((post) => post.data.lang === locale)
   .sort((a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime());
+// In-progress posts aren't linked on the live site, but stay clickable in dev
+const linkInProgress = import.meta.env.DEV;
 ---
 
 <PostListLayout title={t(locale, 'blog.title')}>
@@ -26,13 +28,16 @@ const posts = allPosts
       {posts.map((post, index) => {
         // Extract just the filename from the full id (e.g., "en/hello-world" -> "hello-world")
         const filename = post.id.split('/').pop();
+        const linked = !post.data.inProgress || linkInProgress;
         return (
           <PostCard
             title={post.data.title}
             description={post.data.description}
             pubDate={post.data.pubDate}
-            url={`/${locale}/blog/${filename}`}
+            url={linked ? `/${locale}/blog/${filename}` : undefined}
             animationDelay={(index + 1) * 0.1}
+            inProgress={post.data.inProgress}
+            locale={locale}
           />
         );
       })}

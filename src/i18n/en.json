@@ -29,7 +29,9 @@
     "title": "Blog",
     "noPosts": "No posts yet. Check back soon!",
     "updated": "Updated",
-    "minRead": "min read"
+    "minRead": "min read",
+    "inProgress": "In Progress",
+    "inProgressNotice": "This post is still being written. Parts of it may change, move or turn out to be wrong."
   },
   "projects": {
     "title": "Projects",
