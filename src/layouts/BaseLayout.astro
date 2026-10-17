@@ -8,7 +8,8 @@ import themeInitScript from '../scripts/themeInit.js?raw'; // import script as r
 const locale = Astro.currentLocale || 'en';
 // heroPage: overlay the header so the page content centers on the full viewport
 // wide: allow a wider content column (used by interactive tools)
-const { title, description, ogType = 'website', heroPage = false, wide = false } = Astro.props;
+// noindex: keep the page out of search results (unfinished posts)
+const { title, description, ogType = 'website', heroPage = false, wide = false, noindex = false } = Astro.props;
 
 const siteName = 'Daryl';
 const pageTitle = title ? `${title} | ${siteName}` : `${siteName} — ${t(locale, 'hero.subtitle')}`;
@@ -23,6 +24,7 @@ const metaDescription = description || t(locale, 'meta.description');
 		<meta name="generator" content={Astro.generator} />
 		<title>{pageTitle}</title>
 		<meta name="description" content={metaDescription} />
+		{noindex && <meta name="robots" content="noindex" />}
 		<meta property="og:title" content={pageTitle} />
 		<meta property="og:description" content={metaDescription} />
 		<meta property="og:type" content={ogType} />

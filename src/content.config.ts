@@ -10,6 +10,8 @@ const blog = defineCollection({
     pubDate: z.coerce.date(),
     updatedDate: z.coerce.date().optional(),
     lang: z.enum(['en', 'ja']).default('en'),
+    /** Still being written: badged on the blog list, linked only in dev, not indexed. */
+    inProgress: z.boolean().optional(),
   }),
 });
 

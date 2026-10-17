@@ -3,6 +3,7 @@ title: What really happens when your browser sends an HTTPS request
 description: A deep dive into the layers between your code and the wire. Where TCP, TLS and HTTP actually live, how a connection is set up, kept honest and torn down, and why the fastest request is the one that reuses a connection.
 pubDate: 2026-10-13
 lang: en
+inProgress: true
 ---
 
 I've spent the last while studying networking fundamentals: the OSI model, switches and routers, ARP, subnetting, the usual. That gets you to layer 3. It explains how a packet finds its way from my laptop to a server, but it doesn't explain the part I touch every day as a web developer: what happens *inside* that packet, and above it, when I call `fetch()` or `requests.get()`.

@@ -1,6 +1,7 @@
 ---
 import { tagColor } from '../../utils/projectTags';
 import { t } from '../../utils/i18n';
+import StatusBadge from '../base/StatusBadge.astro';
 
 interface Props {
   title: string;
@@ -22,7 +23,11 @@ const Tag = url ? 'a' : 'div';
   class={`project-card animate-fadeInUp${inProgress ? ' project-card--in-progress' : ''}`}
   style={`animation-delay: ${animationDelay}s;`}
 >
-  {inProgress && <span class="project-card-badge">{t(locale, 'projects.inProgress')}</span>}
+  {inProgress && (
+    <span class="project-card-badge">
+      <StatusBadge label={t(locale, 'projects.inProgress')} />
+    </span>
+  )}
   <div class="project-card-image-wrapper">
     <img src={image} alt={title} class="project-card-image" loading="lazy" />
     <div class="project-card-overlay"></div>
@@ -103,23 +108,7 @@ const Tag = url ? 'a' : 'div';
     top: 0.625rem;
     right: 0.625rem;
     z-index: 1;
-    padding: 0.25rem 0.75rem;
-    border-radius: 999px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    background-color: rgb(160, 90, 0);
-    color: rgb(255, 220, 120);
-    border: 1.5px solid rgb(255, 185, 50);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
-  }
-
-  :global([data-theme="light"]) .project-card-badge {
-    background-color: rgb(120, 60, 0);
-    color: rgb(255, 225, 140);
-    border-color: rgb(200, 130, 20);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    line-height: 0;
   }
 
   :global([data-theme="light"]) .project-card {

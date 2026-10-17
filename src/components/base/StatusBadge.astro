@@ -1,0 +1,38 @@
+---
+/**
+ * The amber "In Progress" pill shared by project, tool and blog post cards.
+ * It only draws the pill; the parent decides where it sits.
+ */
+interface Props {
+  label: string;
+}
+
+const { label } = Astro.props;
+---
+
+<span class="status-badge">{label}</span>
+
+<style>
+  .status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    background-color: rgb(160, 90, 0);
+    color: rgb(255, 220, 120);
+    border: 1.5px solid rgb(255, 185, 50);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  }
+
+  :global([data-theme="light"]) .status-badge {
+    background-color: rgb(120, 60, 0);
+    color: rgb(255, 225, 140);
+    border-color: rgb(200, 130, 20);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+</style>
