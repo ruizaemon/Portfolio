@@ -1,16 +1,17 @@
 ---
-title: What really happens when your browser sends an HTTPS request
-description: A deep dive into the layers between your code and the wire. Where TCP, TLS and HTTP actually live, how a connection is set up, kept honest and torn down, and why the fastest request is the one that reuses a connection.
+title: Layer 4, TLS, and HTTP explained
+description: A deep dive into the layers between application code and the wire during an HTTPS request
 pubDate: 2026-10-13
+updatedDate: 2026-10-18
 lang: en
 inProgress: true
 ---
 
-I've spent the last while studying networking fundamentals: the OSI model, switches and routers, ARP, subnetting, the usual. That gets you to layer 3. It explains how a packet finds its way from my laptop to a server, but it doesn't explain the part I touch every day as a web developer: what happens *inside* that packet, and above it, when I call `fetch()` or `requests.get()`.
+This post assumes some knowledge of networking fundamentals: the OSI model, hosts, switches, routers, ARP, and network protocols - everything up to layer 3.
 
-This post is my attempt to fill that gap properly, from the socket call down to layer 4 and back up through TLS to HTTP. It follows a single request, `GET https://api.example.com/orders`, from the moment the browser decides to send it until a handler function runs on the server, and it tries to answer the questions I actually had along the way. The diagrams are hand-drawn SVG, so they follow the site's light and dark themes.
+The next logical step is to learn about layer 4 and beyond - where the destination port comes from, who handles TCP/UDP, what actually happens to the packets and what is sent to the application for processing.
 
-I'll assume you know what IP addresses, ports, MAC addresses and routers are. Everything else is explained as it comes up.
+This post is my attempt to answer those questions by following a single request, GET `https://api.example.com/orders`, down the stack on the client, across the network, and back up the stack on the server, stopping at each layer from 4 upwards.
 
 <nav class="toc" aria-label="On this page">
 
@@ -46,15 +47,15 @@ I'll assume you know what IP addresses, ports, MAC addresses and routers are. Ev
 
 ## Where the layers actually live
 
-The first thing that made the layer model click for me was realising that it's a map of *responsibilities*, not a list of separate programs. There is no "layer 4 process" on your machine. Each layer is handled by whatever piece of software owns that job, and most of them are not yours.
+The OSI model is a map of *responsibilities*. Each layer is handled by whatever piece of software owns that job, and most of them are not inside your application process.
 
 <div data-diagram="net-stack-ownership"></div>
 
-The boundary that matters for a developer is the **socket API**. Everything you write, and every library you use, talks to the network through a handful of system calls: `connect()`, `send()`, `recv()`, `close()`. On the far side of those calls, the kernel owns TCP, IP and Ethernet. Your process never sees a TCP header, never sees a packet, and has no say in how the data is split up on the wire. It hands over bytes and gets bytes back.
+The boundary that matters for a developer is the **socket API**. Everything you write, and every library you use, talks to the network through a handful of system calls: `connect()`, `send()`, `recv()`, `close()`. On the far side of those calls, the kernel owns **TCP** (Transmission Control Protocol), IP and Ethernet. Your process never sees a TCP header, never sees a packet, and has no say in how the data is split up on the wire. It hands over bytes and gets bytes back.
 
-TLS is the interesting exception. It is not in the kernel; it's a library (OpenSSL, BoringSSL, rustls, the one built into Node or Go) that your process links against. It sits *between* your HTTP code and the socket, encrypting what you send and decrypting what arrives. Your HTTP code still sees plain bytes, just as if the connection weren't encrypted at all.
+**TLS** (Transport Layer Security) is the interesting exception. It is not in the kernel; it's a library (OpenSSL, BoringSSL, rustls, the one built into Node or Go) that your process links against. It sits *between* your **HTTP** (Hypertext Transfer Protocol) code and the socket, encrypting what you send and decrypting what arrives. Your HTTP code still sees plain bytes, just as if the connection weren't encrypted at all.
 
-Here is literally everything `requests.get("https://api.example.com/orders")` does, written out with the standard library:
+Here is roughly what `requests.get("https://api.example.com/orders")` does, written out with the standard library. (`requests` also follows redirects, decompresses bodies and so on, but this is the core of it.)
 
 ```python
 import socket, ssl
@@ -66,13 +67,15 @@ with socket.create_connection(("api.example.com", 443)) as tcp:
     # TLS handshake; server_hostname becomes the SNI and is checked against the certificate
     with ctx.wrap_socket(tcp, server_hostname="api.example.com") as tls:
         tls.sendall(b"GET /orders HTTP/1.1\r\nHost: api.example.com\r\nConnection: close\r\n\r\n")
+        response = b""
         while chunk := tls.recv(4096):  # a byte stream: it arrives in whatever pieces it arrives in
-            print(chunk.decode(), end="")
+            response += chunk
+        print(response.decode())  # decode once at the end: a chunk can split a multi-byte character
 ```
 
 Three lines do the real work: one call sets up TCP, one sets up TLS, and one writes an HTTP request as text into the stream. The rest of this post is about what each of those lines causes to happen.
 
-One practical note on the model: there are no separate layer 5 or layer 6 headers in a real HTTPS request. The OSI model was designed for a different protocol family. In practice you have Ethernet (2), IP (3), TCP (4), TLS (somewhere in 5–6, if you insist) and HTTP (7). The TCP/IP model, with its four layers, is the honest description of what's on the wire.
+One practical note on the model: there are no separate layer 5 or layer 6 headers in a real **HTTPS** (HTTP Secure) request. The OSI model was designed for a different protocol family. In practice you have Ethernet (2), IP (3), TCP (4), TLS (somewhere in 5–6, if you insist) and HTTP (7). The TCP/IP model, with its four layers, is the honest description of what's on the wire.
 
 ## Before the first packet: filling in the addresses
 
@@ -103,14 +106,14 @@ Those four values together are the connection's identity on both machines. When 
 
 The next-hop MAC is a layer 2 concern and is different in kind from the four fields above. For a destination outside your subnet, the kernel ARPs for the *gateway's* MAC, not the server's, and puts that in the Ethernet frame. Every router along the path strips that frame and writes a new one for the next link. The destination IP stays the same all the way; the MAC changes at every hop.
 
-There's one common exception to "the IP addresses stay the same", and it's sitting in your home: **NAT**. Your router rewrites the source IP and port of every outgoing packet to its own public address and a port it chose, and keeps a table to reverse the mapping on the way back. The server sees your router's public IP, not your `192.168.x.x` one, and a different source port from the one your kernel picked. From the server's point of view, everyone in your house is one client with many ports. This is why a server can't use the source IP to identify a user, and it's why cloud load balancers add `X-Forwarded-For` (more on that later).
+There's one common exception to "the IP addresses stay the same", and it's sitting in your home: **NAT** (network address translation). Your router rewrites the source IP and port of every outgoing packet to its own public address and a port it chose, and keeps a table to reverse the mapping on the way back. The server sees your router's public IP, not your `192.168.x.x` one, and a different source port from the one your kernel picked. From the server's point of view, everyone in your house is one client with many ports. This is why a server can't use the source IP to identify a user, and it's why cloud load balancers add `X-Forwarded-For` (more on that later).
 
 </details>
 
 <details class="explainer">
 <summary>Finding ports through DNS</summary>
 
-A few protocols discover their port instead of assuming it. `SRV` records (`_xmpp-client._tcp.example.com`) carry a hostname and port, and are used by XMPP, SIP, Minecraft and others. The newer `HTTPS` record type does something similar for the web, and also tells the browser upfront that the server supports HTTP/3 and which port to use for it, saving a round trip of discovery. Browsers support `HTTPS` records today; plain `SRV` was never adopted for HTTP.
+A few protocols discover their port instead of assuming it. **`SRV`** (service) records (`_xmpp-client._tcp.example.com`) carry a hostname and port, and are used by **XMPP** (Extensible Messaging and Presence Protocol, for chat), **SIP** (Session Initiation Protocol, for internet phone calls), Minecraft and others. The newer `HTTPS` record type does something similar for the web, and also tells the browser upfront that the server supports HTTP/3 and which port to use for it, saving a round trip of discovery. Browsers support `HTTPS` records today; plain `SRV` was never adopted for HTTP.
 
 </details>
 
@@ -126,13 +129,13 @@ A TCP connection starts with three messages.
 
 <div data-diagram="net-tcp-handshake"></div>
 
-Why three? Because each side has to tell the other its **initial sequence number** (ISN) and get confirmation that it was heard. The client's SYN carries its ISN, *x*. The server's SYN-ACK does two jobs at once: it acknowledges *x* (by saying "the next byte I expect is *x* + 1") and carries the server's own ISN, *y*. The client's ACK acknowledges *y*. Two messages would leave the server unsure whether its ISN had been received; three is the minimum for both sides to know the other is really there and agree on numbering.
+Why three? Because each side has to tell the other its **initial sequence number** (ISN) and get confirmation that it was heard. The client's **SYN** (synchronise) carries its ISN, *x*. The server's **SYN-ACK** (synchronise-acknowledgement) does two jobs at once: it acknowledges *x* (by saying "the next byte I expect is *x* + 1") and carries the server's own ISN, *y*. The client's ACK acknowledges *y*. Two messages would leave the server unsure whether its ISN had been received; three is the minimum for both sides to know the other is really there and agree on numbering.
 
 The sequence numbers are random on purpose. If they always started at 0, an attacker who couldn't see your traffic could still guess valid packets to inject, and a late packet from an earlier connection on the same ports could be mistaken for part of the new one.
 
 A few details that matter in practice:
 
-- **`connect()` returns when the SYN-ACK arrives.** From the client's point of view the connection exists before the server has even seen the final ACK. The client can put data in the same packet as that ACK, which is exactly what happens with TLS: the ClientHello rides along with it.
+- **`connect()` returns when the SYN-ACK arrives.** From the client's point of view the connection exists before the server has even seen the final ACK. The client doesn't wait for anything else before sending data, which is exactly what happens with TLS: the ClientHello goes out straight behind the ACK. (It's usually a separate packet, and in tcpdump you'll see the bare ACK first, but it doesn't cost another round trip.)
 - **The server has to be `listen()`ing.** A listening socket is a different kind of socket from a connected one. It holds a queue of half-open connections (SYN received, ACK not yet) and a queue of fully established ones waiting for the application to call `accept()`. When those queues overflow under a flood of SYNs, the kernel can switch to *SYN cookies*, encoding the connection state into the ISN itself so it doesn't have to store anything.
 - **If nothing is listening**, the server's kernel answers the SYN with a **RST** (reset). That's what "connection refused" means: something is there, and it said no. "Connection timed out" is different: no answer at all, usually because a firewall silently dropped the SYN or the host is down.
 - The handshake costs **one full round trip** before any data can be sent. That number comes back later.
@@ -143,9 +146,9 @@ This is the concept that took me longest to really get: TCP is a **byte stream**
 
 <div data-diagram="net-byte-stream"></div>
 
-When your code calls `send()` with 4000 bytes, the kernel does not send a 4000-byte packet. It cuts the data into **segments** no larger than the **MSS** (maximum segment size), which both sides advertised during the handshake. On a normal Ethernet path the MTU is 1500 bytes; subtract 20 for the IP header and 20 for the TCP header and you get an MSS of 1460. So 4000 bytes become three segments of 1460, 1460 and 1080.
+When your code calls `send()` with 4000 bytes, the kernel does not send a 4000-byte packet. It cuts the data into **segments** no larger than the **MSS** (maximum segment size), which both sides advertised during the handshake. On a normal Ethernet path the **MTU** (maximum transmission unit) is 1500 bytes; subtract 20 for the IP header and 20 for the TCP header and you get an MSS of 1460. So 4000 bytes become three segments of 1460, 1460 and 1080.
 
-Each segment carries the sequence number of its first byte. The sequence number counts *bytes*, not packets: the second segment says "I start at byte 1460". That is the whole trick. If the second segment arrives before the first, the receiver knows exactly where it goes. If one is lost, the receiver knows exactly which bytes are missing. If one arrives twice, the receiver recognises the duplicate range and drops it.
+Each segment carries the sequence number of its first byte. The sequence number counts *bytes*, not packets: the second segment says "I start at byte 1460". (Real sequence numbers are offsets from the random ISN; I'm counting the first data byte as 0 to keep the numbers readable.) That is the whole trick. If the second segment arrives before the first, the receiver knows exactly where it goes. If one is lost, the receiver knows exactly which bytes are missing. If one arrives twice, the receiver recognises the duplicate range and drops it.
 
 Having reassembled the bytes in order, the kernel puts them in the socket's receive buffer, and `recv()` returns whatever is there up to the size you asked for. It has no idea, and no record, of how the data was segmented. That is why:
 
@@ -153,15 +156,15 @@ Having reassembled the bytes in order, the kernel puts them in the socket's rece
 - **Small sends can be merged.** Call `send()` three times with 10 bytes each and they may well travel in one segment. By default the kernel delays small segments while earlier data is still unacknowledged, to avoid flooding the network with tiny packets (this is **Nagle's algorithm**; `TCP_NODELAY` turns it off, which every latency-sensitive protocol does).
 - **Anything built on TCP has to do its own framing.** The stream gives you no boundaries, so each protocol invents its own. TLS puts a 5-byte header with a length in front of every record. HTTP/1.1 ends its headers with a blank line and then uses `Content-Length` or chunked encoding to say how long the body is. HTTP/2 prefixes every frame with its length. A protocol that forgets this (reading "one message" per `recv()`) works on localhost and breaks the first time it meets a real network.
 
-UDP is the contrast: there, each `send()` is exactly one datagram, and the receiver gets it whole or not at all. Boundaries preserved, everything else lost.
+**UDP** (User Datagram Protocol) is the contrast: there, each `send()` is exactly one datagram, and the receiver gets it whole or not at all. Boundaries preserved, everything else lost.
 
 ### Reliability: ACKs and retransmission
 
-The receiver tells the sender what it has received with **acknowledgements**. An ACK carries one number: the next byte the receiver is waiting for. "ACK 1461" means "I have every byte up to 1460; send me 1461 next". ACKs are cumulative, which is efficient (one ACK can confirm many segments) but also means a lost segment makes the ACK number stick.
+The receiver tells the sender what it has received with **acknowledgements**. An ACK carries one number: the next byte the receiver is waiting for. "ACK 1460" means "I have bytes 0 to 1459; send me 1460 next". ACKs are cumulative, which is efficient (one ACK can confirm many segments) but also means a lost segment makes the ACK number stick.
 
 <div data-diagram="net-tcp-retransmit"></div>
 
-The sender keeps a copy of every unacknowledged segment and a timer. If the timer fires before the ACK arrives, it resends. That timer, the **RTO**, is derived from the measured round-trip time, with a floor of 200 ms on Linux, and it doubles on each failure. But waiting for it is slow. The usual way loss gets repaired is **fast retransmit**: when the receiver gets a segment it wasn't expecting (segment 3 when it wanted 2), it immediately sends another ACK for the byte it's still waiting for. Three of those duplicate ACKs in a row tell the sender exactly which segment is missing, and it resends that one segment without waiting for the timer.
+The sender keeps a copy of every unacknowledged segment and a timer. If the timer fires before the ACK arrives, it resends. That timer, the **RTO** (retransmission timeout), is derived from the measured round-trip time, with a floor of 200 ms on Linux, and it doubles on each failure. But waiting for it is slow. The usual way loss gets repaired is **fast retransmit**: when the receiver gets a segment it wasn't expecting (segment 3 when it wanted 2), it immediately sends another ACK for the byte it's still waiting for. Three of those duplicate ACKs in a row tell the sender exactly which segment is missing, and it resends that one segment without waiting for the timer.
 
 Modern stacks also use **selective acknowledgements** (SACK), a TCP option in which the receiver lists the ranges it *does* have beyond the gap, so the sender resends only what's actually missing instead of everything after it.
 
@@ -182,12 +185,12 @@ A sender could shovel segments out as fast as the network card allows. Two thing
 
 **Flow control protects the receiver.** Every ACK carries a **window** field: the amount of free space left in the receiver's buffer. The sender must never have more than that many unacknowledged bytes in flight. If the receiving application is slow to call `recv()`, the buffer fills, the window shrinks towards zero, and the sender stops. This is *backpressure*, and it propagates: a slow consumer at the very end of a pipeline eventually stalls the producer at the start without anyone writing code for it. (The window field is 16 bits, so 64 KB; a handshake option called *window scaling* multiplies it so modern connections can have megabytes in flight.)
 
-**Congestion control protects the network.** Nothing in the path tells the sender how much capacity there is, so it has to find out by probing. It keeps a second limit, the **congestion window** (cwnd), that never leaves the sender's machine, and it may only have `min(rwnd, cwnd)` bytes in flight. A new connection starts with a cwnd of 10 segments (about 14 KB) and in **slow start** doubles it every round trip. When a loss is detected, the sender takes that as a congestion signal, cuts cwnd (roughly in half, depending on the algorithm) and grows it again slowly, about one segment per round trip. That is the sawtooth. The default algorithm on Linux is CUBIC; BBR, which estimates bandwidth and delay directly instead of waiting for loss, is used by Google, Cloudflare and others.
+**Congestion control protects the network.** Nothing in the path tells the sender how much capacity there is, so it has to find out by probing. It keeps a second limit, the **congestion window** (cwnd), that never leaves the sender's machine, and it may only have `min(rwnd, cwnd)` bytes in flight (rwnd being the receive window from the previous paragraph). A new connection starts with a cwnd of 10 segments (about 14 KB) and in **slow start** doubles it every round trip. When a loss is detected, the sender takes that as a congestion signal, cuts cwnd, and grows it again more cautiously than in slow start. In the classic algorithm (Reno) that means halving it and then adding about one segment per round trip, which draws a sawtooth. The default on Linux is CUBIC, which cuts less (to about 70%) and regrows along a cubic curve: quickly at first, then slowly as it nears the size where loss last happened. **BBR** (Bottleneck Bandwidth and Round-trip propagation time), which estimates bandwidth and delay directly instead of waiting for loss, is used by Google, Cloudflare and others.
 
 Two consequences follow that show up in real systems:
 
 - **A new connection is slow for its first few round trips** no matter how fast the link is. Transferring 1 MB over a fresh connection on an 80 ms path takes several round trips of slow start before cwnd is large enough to use the bandwidth. A connection that's already been used has a warmed-up cwnd. This is the second reason (after handshakes) that connection reuse matters so much.
-- **Bandwidth × delay is the real limit.** To keep a 100 Mbit/s link busy over an 80 ms round trip, you need 1 MB in flight, continuously. A single connection with a small window can't do it; this is why a download from another continent is often slower than the link, and part of why CDNs put servers close to you.
+- **Bandwidth × delay is the real limit.** To keep a 100 Mbit/s link busy over an 80 ms round trip, you need 1 MB in flight, continuously. A single connection with a small window can't do it; this is why a download from another continent is often slower than the link, and part of why **CDNs** (content delivery networks) put servers close to you.
 
 ### Closing a connection
 
@@ -195,7 +198,7 @@ Each direction of a TCP connection is closed separately, so a clean shutdown tak
 
 <div data-diagram="net-tcp-close"></div>
 
-When your code calls `close()`, the kernel sends a **FIN**: "I have nothing more to send". The other side ACKs it, and can keep sending data for as long as it likes; this is a *half-closed* connection, and some protocols rely on it (the client finishes writing its request, then reads the whole response). When the other side is done, it sends its own FIN, and the first side ACKs that.
+When your code calls `close()`, the kernel sends a **FIN** (finish): "I have nothing more to send". The other side ACKs it, and can keep sending data for as long as it likes; this is a *half-closed* connection, and some protocols rely on it (the client finishes writing its request, then reads the whole response). When the other side is done, it sends its own FIN, and the first side ACKs that.
 
 The side that closed first then enters **TIME_WAIT** and stays there for twice the *maximum segment lifetime*, a fixed 60 seconds on Linux. The reason is subtle: if that last ACK is lost, the other side will resend its FIN, and someone has to be around to re-ACK it. And more importantly, any stray packets from this connection still wandering the network must be given time to die before the same four-tuple can be reused for a new connection, where they would be mistaken for new data. It is a feature, but it has a cost: a server that actively closes thousands of short connections per second accumulates tens of thousands of sockets in TIME_WAIT, each tying up a four-tuple. This is one of the reasons HTTP keeps connections open and reuses them, and why it's usually better for the *client* to close.
 
@@ -210,12 +213,15 @@ For reference, this is the 20 bytes (plus options) in front of every segment. Ev
 | Source port, destination port | 16 bits each | Which socket on each machine, together with the IP addresses |
 | Sequence number | 32 bits | The byte offset of the first byte in this segment |
 | Acknowledgement number | 32 bits | The next byte the sender of this segment expects to receive |
-| Flags | 9 bits | `SYN`, `ACK`, `FIN`, `RST`, `PSH` (deliver now), `URG`, and two for congestion notification |
+| Data offset | 4 bits | Header length in 32-bit words, needed because options vary in size |
+| Reserved | 4 bits | Unused, always zero |
+| Flags | 8 bits | `SYN`, `ACK`, `FIN`, `RST`, `PSH` (push: deliver now), `URG` (urgent), and two for congestion notification (`ECE`, Explicit Congestion Notification Echo, and `CWR`, Congestion Window Reduced) |
 | Window | 16 bits | Receive window: free buffer space, scaled by the window-scale option |
 | Checksum | 16 bits | Covers the header, data and the IP addresses |
-| Options | variable | `MSS` and *window scale* (handshake only), *SACK permitted* / *SACK* blocks, *timestamps* for RTT measurement |
+| Urgent pointer | 16 bits | Used with `URG`; effectively obsolete |
+| Options | variable | `MSS` and *window scale* (handshake only), *SACK permitted* / *SACK* blocks, *timestamps* for **RTT** (round-trip time) measurement |
 
-There is no length field: the segment's data length is worked out from the IP header's length minus the headers. And there is nothing about the application in here at all. TCP has no idea it's carrying HTTPS.
+There is no *payload* length field: the segment's data length is worked out from the IP header's total length minus the IP and TCP header lengths. And there is nothing about the application in here at all. TCP has no idea it's carrying HTTPS.
 
 ## UDP: the honest minimum
 
@@ -229,11 +235,11 @@ UDP is what you get when you take IP and add just enough to reach the right appl
 | Loss | Detected and repaired | Your problem |
 | Flow and congestion control | Built in | Your problem |
 | Header | 20 bytes + options | 8 bytes |
-| Typical users | HTTP/1.1, HTTP/2, SSH, databases, email | DNS, HTTP/3 (QUIC), video calls, games, NTP, DHCP |
+| Typical users | HTTP/1.1, HTTP/2, SSH, databases, email | DNS, HTTP/3 (QUIC), video calls, games, **NTP** (Network Time Protocol), **DHCP** (Dynamic Host Configuration Protocol) |
 
-The folk wisdom is that "UDP is faster". Per packet, it isn't; a UDP datagram and a TCP segment travel the same path at the same speed. What UDP lets you skip is the *waiting*: no handshake before the first byte, no stall behind a lost packet, no congestion window ramping up. For a DNS query, one datagram each way, a handshake would triple the cost. For a video call, a lost frame is worth nothing 100 ms later, so retransmitting it is a waste; better to skip it and keep going. For a game, the latest position matters and the old one doesn't.
+The folk wisdom is that "UDP is faster". Per packet, it isn't; a UDP datagram and a TCP segment travel the same path at the same speed. What UDP lets you skip is the *waiting*: no handshake before the first byte, no stall behind a lost packet, no congestion window ramping up. For a DNS query, one datagram each way, a handshake would double the latency. For a video call, a lost frame is worth nothing 100 ms later, so retransmitting it is a waste; better to skip it and keep going. For a game, the latest position matters and the old one doesn't.
 
-UDP is also what you build on when you want TCP's guarantees but on your own terms. QUIC, the transport under HTTP/3, is "TCP done again in user space on top of UDP", with reliability and congestion control reimplemented so they can be changed without waiting for every operating system on earth to update its kernel. More on that below.
+UDP is also what you build on when you want TCP's guarantees but on your own terms. **QUIC**, the transport under HTTP/3 (originally short for Quick UDP Internet Connections, though the standard now treats it as just a name), is "TCP done again in user space on top of UDP", with reliability and congestion control reimplemented so they can be changed without waiting for every operating system on earth to update its kernel. More on that below.
 
 The thing to internalise: UDP doesn't give you less reliability, it gives you *no* reliability, and every protocol on top of it that needs some has to build exactly what it needs.
 
@@ -254,14 +260,14 @@ Before any of that can happen, the two sides need to agree on keys. TLS 1.3, whi
 <div data-diagram="net-tls-handshake"></div>
 
 1. **ClientHello.** The client sends the list of cipher suites it supports, a random value, and three things worth knowing by name:
-   - A **key share**: the public half of a fresh ephemeral key pair (usually an X25519 curve point). The private half never leaves the client.
+   - A **key share**: the public half of a fresh ephemeral key pair. The private half never leaves the client. This used to be an X25519 curve point; current Chrome and Firefox send a post-quantum hybrid, X25519MLKEM768, which pairs X25519 with **ML-KEM** (Module-Lattice-based Key-Encapsulation Mechanism), a lattice-based key exchange, so that traffic recorded today can't be decrypted by a future quantum computer.
    - **SNI** (Server Name Indication): the hostname from the URL, in plain text. The server needs it before it can pick a certificate, and a single IP address usually hosts many sites, so it can't be inferred from the destination. This is the one piece of HTTPS metadata that leaks; see the explainer below.
    - **ALPN** (Application-Layer Protocol Negotiation): the list of application protocols the client speaks, typically `h2, http/1.1`. This is how HTTP/2 gets negotiated without an extra round trip.
-2. **ServerHello.** The server picks a cipher suite and sends its own key share. At this moment both sides can compute the same shared secret: each combines its own private key with the other's public key, and the maths (elliptic-curve Diffie–Hellman) guarantees they get the same answer, while an observer who saw both public halves cannot. The secret itself is never transmitted. From this secret both derive the symmetric keys (AES-GCM or ChaCha20-Poly1305) that will encrypt everything from here on.
-3. **Encrypted server messages**, in the same flight: `EncryptedExtensions` (including the chosen ALPN protocol), the **Certificate** chain, **CertificateVerify** (a signature over the handshake so far, made with the private key that belongs to the certificate, proving the server actually holds it), and **Finished** (a checksum of the whole handshake, so any tampering with the earlier plaintext messages is detected). All of this is already encrypted with the handshake keys, which is why TLS 1.3 hides the certificate from observers; TLS 1.2 sent it in the clear.
+2. **ServerHello.** The server picks a cipher suite and sends its own key share. At this moment both sides can compute the same shared secret: each combines its own private key with the other's public key, and the maths (elliptic-curve Diffie–Hellman) guarantees they get the same answer, while an observer who saw both public halves cannot. The secret itself is never transmitted. From this secret both derive the symmetric keys (**AES-GCM**, Advanced Encryption Standard in Galois/Counter Mode, or ChaCha20-Poly1305) that will encrypt everything from here on.
+3. **Encrypted server messages**, in the same flight: `EncryptedExtensions` (including the chosen ALPN protocol), the **Certificate** chain, **CertificateVerify** (a signature over the handshake so far, made with the private key that belongs to the certificate, proving the server actually holds it), and **Finished** (a **MAC**, or message authentication code, over the whole handshake transcript, so any tampering with the earlier plaintext messages is detected). All of this is already encrypted with the handshake keys, which is why TLS 1.3 hides the certificate from observers; TLS 1.2 sent it in the clear.
 4. **Client Finished.** The client verifies the certificate chain and the signature, sends its own Finished, and, crucially, **sends the HTTP request in the same flight**. It doesn't wait for anything else.
 
-So from the client's point of view: one round trip to get the server's key share and certificate, and the request leaves immediately after. TLS 1.2 needed two round trips, because the key exchange and the certificate check happened in separate steps.
+So from the client's point of view: one round trip to get the server's key share and certificate, and the request leaves immediately after. TLS 1.2 needed two round trips, because the client didn't send its key share until it had seen which key-exchange parameters the server picked, so agreeing on keys took a second trip. TLS 1.3 has the client guess and send a key share in its very first message; if it guesses wrong, the server asks for another one (a *HelloRetryRequest*) and the round trip comes back, but in practice the guess is almost always right.
 
 Two more things fall out of the ephemeral keys. First, **forward secrecy**: the key pair is thrown away after the handshake, so even if the server's long-term private key is stolen next year, recordings of today's traffic can't be decrypted. Second, the server's long-term key is used only for *signing* in CertificateVerify, never for encrypting; that's what makes the first point possible.
 
@@ -284,7 +290,7 @@ A certificate is a signed statement: "this public key belongs to `api.example.co
 
 In practice roots don't sign server certificates directly; they sign **intermediate** CAs, which sign the server certificates, so the root's private key can stay offline. The server sends its own certificate *and* the intermediates during the handshake (a frequent misconfiguration is forgetting the intermediate, which works in browsers that cache it and fails in `curl`). The client walks the chain: is the server cert signed by the intermediate? Is the intermediate signed by a root in my store? Then it checks the dates, checks that the hostname it connected to matches one of the names in the certificate's *Subject Alternative Name* list, and, with varying enthusiasm, checks that nothing in the chain has been revoked.
 
-Since Let's Encrypt made certificates free and automatable in 2015, most of the web uses 90-day certificates renewed by a script, and the lifetime is heading down further. A short lifetime limits the damage from a stolen key and makes revocation, which never really worked, matter less.
+Since Let's Encrypt made certificates free and automatable in 2015, most of the web uses 90-day certificates renewed by a script, and the lifetime is heading down further: the CA/Browser Forum has voted to cut the maximum in steps, to 200 days from March 2026, 100 days from 2027 and 47 days from 2029. A short lifetime limits the damage from a stolen key and makes revocation, which never really worked, matter less.
 
 ### Records: how TLS frames the stream
 
@@ -308,9 +314,9 @@ TLS ends wherever the certificate's private key lives, and that is not necessari
 
 - **In the app server** (uvicorn, Node, Go's `net/http` with a cert configured): the simple case, and the diagram above. The TLS library runs inside your process.
 - **In a reverse proxy on the same host** (nginx, Caddy): nginx holds the certificate, decrypts, and talks plain HTTP to your app on `localhost:8000`. Your app never sees TLS at all.
-- **In a load balancer** (an AWS ALB, Google's HTTPS load balancer, Cloudflare): same idea, one network hop earlier. The load balancer terminates TCP *and* TLS, parses the HTTP request, and opens its own, usually unencrypted, TCP connection to your server on a private network. Because that is a completely new connection with the load balancer as its source, your app sees the load balancer's IP, which is why it adds `X-Forwarded-For` (the client's real IP) and `X-Forwarded-Proto: https` (so your app knows the user connected securely even though the hop it sees is plain HTTP).
+- **In a load balancer** (an AWS Application Load Balancer (**ALB**), Google's HTTPS load balancer, Cloudflare): same idea, one network hop earlier. The load balancer terminates TCP *and* TLS, parses the HTTP request, and opens its own, usually unencrypted, TCP connection to your server on a private network. Because that is a completely new connection with the load balancer as its source, your app sees the load balancer's IP, which is why it adds `X-Forwarded-For` (the client's real IP) and `X-Forwarded-Proto: https` (so your app knows the user connected securely even though the hop it sees is plain HTTP).
 
-A layer 4 load balancer (an AWS NLB) is different: it forwards TCP packets without opening them, so TLS still terminates on your server, and your server sees the real client IP in the packets. I went through the two kinds, with diagrams of exactly which headers each one rewrites, in the [load balancer section of the capacity simulator write-up](/en/projects/tools/capacity-sim/#load-balancer).
+A layer 4 load balancer (such as AWS's Network Load Balancer, **NLB**) is different: it forwards TCP packets without opening them, so TLS still terminates on your server, and your server sees the real client IP in the packets. I went through the two kinds, with diagrams of exactly which headers each one rewrites, in the [load balancer section of the capacity simulator write-up](/en/projects/tools/capacity-sim/#load-balancer).
 
 ## HTTP: the part your code actually sees
 
@@ -318,7 +324,8 @@ With a reliable, encrypted byte stream in hand, HTTP is almost anticlimactic: it
 
 ### HTTP/1.1: text, and one thing at a time
 
-This is what travels inside the TLS records for our example request. You can type it by hand into `openssl s_client` and it works.
+This is what travels inside the TLS records for our example request. You can type it by hand into `openssl s_client -crlf` and it works (`-crlf` turns each Enter into the `
+` that HTTP expects).
 
 ```http
 GET /orders HTTP/1.1
@@ -338,7 +345,7 @@ Content-Length: 23
 {"orders": [{"id": 1}]}
 ```
 
-When the server doesn't know the length in advance (it's streaming a generated response), it uses `Transfer-Encoding: chunked` instead: each chunk is prefixed with its size in hex, and a zero-size chunk marks the end. Either way, the receiver can tell where the message ends without the connection closing, which is what lets the connection be **reused** for the next request. HTTP/1.1 made that the default (`Connection: keep-alive`), and it's the single biggest thing you can do for latency: every request after the first skips both handshakes and starts with a warmed-up congestion window.
+When the server doesn't know the length in advance (it's streaming a generated response), it uses `Transfer-Encoding: chunked` instead: each chunk is prefixed with its size in hex, and a zero-size chunk marks the end. Either way, the receiver can tell where the message ends without the connection closing, which is what lets the connection be **reused** for the next request. HTTP/1.1 made that the default (in HTTP/1.0 you had to ask for it with `Connection: keep-alive`), and it's the single biggest thing you can do for latency: every request after the first skips both handshakes and starts with a warmed-up congestion window.
 
 The limitation that eventually forced a redesign: on an HTTP/1.1 connection, requests are strictly serialised. You send one, you wait for its complete response, then you send the next. If one response is slow, everything queued behind it waits; this is **head-of-line blocking** at the HTTP level. Browsers work around it by opening about six connections per hostname and spreading requests across them, which is why old performance advice included serving assets from several domains. (An attempt to send several requests back to back on one connection, *pipelining*, was in the spec but broke too many proxies and was abandoned.)
 
@@ -372,14 +379,14 @@ Putting the layers together, here is what it costs to get the first byte of a re
 
 <div data-diagram="net-first-byte"></div>
 
-The counting: TCP's handshake is one round trip (the client's ACK rides with the first TLS message, so it's not a separate trip). TLS 1.3 is one more, and the HTTP request rides with the client's Finished. The request and the first byte of response are one more. Three in total for a fresh HTTPS connection with TLS 1.3; four with TLS 1.2; two with QUIC, whose handshake is the TLS handshake.
+The counting: TCP's handshake is one round trip (the ClientHello goes out right behind the client's ACK without waiting, so the ACK doesn't cost a trip of its own). TLS 1.3 is one more, and the HTTP request rides with the client's Finished. The request and the first byte of response are one more. Three in total for a fresh HTTPS connection with TLS 1.3; four with TLS 1.2; two with QUIC, whose handshake is the TLS handshake.
 
 What this means in milliseconds depends entirely on distance. To a server in the same city, a round trip is 5–10 ms and three of them are invisible. To a server on another continent, 150 ms each, a fresh TLS 1.2 connection spends 450 ms doing nothing useful before the request even leaves. Transatlantic latency is physics; you can't fix it, you can only avoid paying it repeatedly. In order of impact:
 
 1. **Reuse connections.** Every HTTP client library has a connection pool; use one client object for the life of your process rather than creating one per request. (In Python, that's `requests.Session()` or an `httpx.Client()` instead of bare `requests.get()`. Creating a client per call throws away both handshakes and the warmed-up congestion window every time.) The same applies to database connections, which pay the same handshakes.
 2. **Use HTTP/2 or HTTP/3**, so one connection does the work of many and the reuse rate goes up.
 3. **Use TLS 1.3**, and allow resumption. This is mostly a matter of not running ten-year-old server software.
-4. **Terminate close to the user.** A CDN edge in the user's city does the handshakes over a 5 ms round trip and keeps long-lived, warmed-up connections to your origin. This is a bigger win than any protocol tweak: it turns three expensive round trips into three cheap ones plus one that was already paid.
+4. **Terminate close to the user.** A CDN edge in the user's city does the handshakes over a 5 ms round trip and keeps long-lived, warmed-up connections to your origin. This is a bigger win than any protocol tweak: it turns three expensive round trips into three cheap ones to the edge, plus one expensive one from the edge to your origin over a connection whose handshakes were paid long ago (and none at all if the edge has the response cached).
 5. **Hint the browser.** `<link rel="preconnect">` tells it to do DNS, TCP and TLS for a host *now*, in the background, before the first request to that host is discovered.
 
 ## The server side: where each layer ends
@@ -392,13 +399,13 @@ The network card receives frames and hands packets to the kernel. The kernel's I
 
 The process that called `accept()` reads from that socket. If TLS terminates here, the first thing the bytes hit is the TLS library, which parses records, decrypts them, and produces plaintext. Then an HTTP parser (in uvicorn, in Node's `http` module, in Go's `net/http`, in nginx) reads the request line and headers, works out the body length, and builds a request object. Only then does your framework look at the path, pick a route, and call your function with that object.
 
-So by the time `def get_orders(request)` runs, five layers of headers have been read and discarded. Your function sees none of them. If you want the client's IP, the framework got it from the socket (`getpeername()`), which is the *last hop's* address, which is the load balancer's if there is one; hence `X-Forwarded-For`.
+So by the time `def get_orders(request)` runs, the Ethernet, IP, TCP and TLS headers have all been read and thrown away, and the HTTP headers have been parsed into the request object. That last layer is the only one your function sees. If you want the client's IP, the framework got it from the socket (`getpeername()`), which is the *last hop's* address, which is the load balancer's if there is one; hence `X-Forwarded-For`.
 
 ## See it for yourself
 
 Reading about this is one thing; watching it happen fixed it in my head. These are the commands I used.
 
-**Watch a connection being set up** with `curl -v`. The lines marked `*` are curl narrating each layer; the `>` and `<` lines are the HTTP request and response.
+**Watch a connection being set up** with `curl -v`. The lines marked `*` are curl narrating each layer; the `>` and `<` lines are the HTTP request and response. `api.example.com` is a placeholder, so point it at any real HTTPS site to try it; the output below is trimmed.
 
 ```text
 $ curl -v https://api.example.com/orders
@@ -436,7 +443,7 @@ ESTAB  0  0  192.168.1.23:51234  93.184.216.34:443
 
 **Capture the packets** with `tcpdump -i any -n port 443` and you'll see the handshake in its native form: `[S]`, `[S.]`, `[.]`, then the TLS records as plain `length` lines, then `[F.]` at the end. To see inside the TLS, point Wireshark at a capture and set the `SSLKEYLOGFILE` environment variable before starting your browser or `curl`; they'll write the session keys to that file, and Wireshark will decrypt the HTTP for you. It is the single most educational hour you can spend on this topic.
 
-**Inspect a certificate chain** with `openssl s_client -connect api.example.com:443 -servername api.example.com`. The `-servername` sets the SNI; leave it off and a server hosting several sites will hand you the wrong certificate, which is a good way to see why SNI exists. Once it's connected you can type the HTTP/1.1 request from the section above by hand, blank line and all, and read the response.
+**Inspect a certificate chain** with `openssl s_client -connect api.example.com:443 -servername api.example.com -crlf`. The `-servername` sets the SNI; leave it off and a server hosting several sites will hand you the wrong certificate, which is a good way to see why SNI exists. Once it's connected you can type the HTTP/1.1 request from the section above by hand, blank line and all, and read the response.
 
 ## Questions I had, answered
 
@@ -458,20 +465,20 @@ Short answers to the things I kept asking, collected in one place.
 
 **Refused vs timed out?** *Refused* is a RST in reply to your SYN: the host is up and nothing is listening on that port. *Timed out* is silence: a firewall dropped the SYN, the route is broken, or the host is down. Refused comes back in one round trip; timeouts take as long as you configured.
 
-**Why is MTU 1500 and what happens to a bigger packet?** 1500 is Ethernet's historical maximum frame payload, and the internet inherited it. TCP avoids the problem by never building a segment bigger than the MSS. A path with a smaller MTU somewhere (a VPN or tunnel adds headers) either fragments packets at the IP layer, which is slow and often blocked, or signals the sender to shrink them (*path MTU discovery*); mysterious hangs on large responses over a VPN are usually this, and the fix is clamping the MSS lower.
+**Why is MTU 1500 and what happens to a bigger packet?** 1500 is Ethernet's historical maximum frame payload, and the internet inherited it. TCP avoids the problem by never building a segment bigger than the MSS. A path with a smaller MTU somewhere (a VPN or tunnel adds headers) either fragments packets at the IP layer, which is slow and often blocked, or signals the sender to shrink them (*path MTU discovery*). That signal is an **ICMP** (Internet Control Message Protocol) message, and when a firewall blocks ICMP it never arrives: small packets get through and big ones silently vanish. This is called a **PMTU** (path MTU) black hole. Mysterious hangs on large responses over a VPN are usually this, and the fix is clamping the MSS lower.
 
 **Why do I see so many TIME_WAIT sockets?** Each one is a connection *you* closed first, held for 60 seconds so stray packets can't corrupt a new connection on the same four-tuple. Thousands of them means something is opening and closing a connection per request. Reuse connections, or arrange for the client to close.
 
 **Where do WebSockets fit?** A WebSocket starts as an ordinary HTTP/1.1 request with `Upgrade: websocket`. After the server's `101 Switching Protocols`, HTTP is finished and the same TCP+TLS connection carries WebSocket frames (which have their own tiny length-prefixed framing) in both directions for as long as it stays open. The expensive setup is identical to any HTTPS request; the saving is that it happens once.
 
-**Does any of this change with gRPC?** gRPC is HTTP/2 with a fixed binary body format, so everything above applies directly. Its reliance on long-lived HTTP/2 connections is also why it runs into the "one connection, one backend" problem behind layer 4 load balancers, which can only balance connections, not the requests inside them.
+**Does any of this change with gRPC?** **gRPC** (gRPC Remote Procedure Calls; the name is recursive) is HTTP/2 with a fixed binary body format, so everything above applies directly. Its reliance on long-lived HTTP/2 connections is also why it runs into the "one connection, one backend" problem behind layer 4 load balancers, which can only balance connections, not the requests inside them.
 
 ## Further reading
 
-- [RFC 9293](https://www.rfc-editor.org/rfc/rfc9293), the current TCP specification, which consolidated forty years of updates into one readable document.
+- [RFC 9293](https://www.rfc-editor.org/rfc/rfc9293), the current TCP specification, which consolidated forty years of updates into one readable document. **RFCs** (Requests for Comments) are the numbered documents that internet standards are published as.
 - [RFC 8446](https://www.rfc-editor.org/rfc/rfc8446), TLS 1.3. Section 2 is a short, clear overview of the handshake.
 - [RFC 9000](https://www.rfc-editor.org/rfc/rfc9000), QUIC, and [RFC 9114](https://www.rfc-editor.org/rfc/rfc9114), HTTP/3.
 - [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110), HTTP semantics, with [9112](https://www.rfc-editor.org/rfc/rfc9112) for HTTP/1.1 and [9113](https://www.rfc-editor.org/rfc/rfc9113) for HTTP/2.
-- *High Performance Browser Networking* by Ilya Grigorik, free to read online. Older now, but the chapters on TCP, TLS and the round-trip budget are the best explanations I've found.
-- *Beej's Guide to Network Programming*, for the socket API from the C side, where it's easiest to see what the kernel actually offers.
+- [*High Performance Browser Networking*](https://hpbn.co/) by Ilya Grigorik, free to read online. Older now, but the chapters on TCP, TLS and the round-trip budget are the best explanations I've found.
+- [*Beej's Guide to Network Programming*](https://beej.us/guide/bgnet/), for the socket API from the C side, where it's easiest to see what the kernel actually offers.
 - [The Illustrated TLS 1.3 Connection](https://tls13.xargs.org/), every byte of a real handshake, annotated.

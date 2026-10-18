@@ -210,7 +210,7 @@ export const netTcpHandshake = {
       synack: 'SYN-ACK  seq = y, ack = x + 1',
       synackSub: '“Heard you. Mine starts at y”',
       ack: 'ACK  ack = y + 1',
-      ackSub: 'with TLS 1.3 the ClientHello rides in the same packet',
+      ackSub: 'the ClientHello follows straight behind it, no waiting',
       states: { closed: 'CLOSED', listen: 'LISTEN', synSent: 'SYN_SENT', synRcvd: 'SYN_RECEIVED', est: 'ESTABLISHED' },
       rtt: ['1 RTT', 'before any', 'data can go'],
       caption:
@@ -225,7 +225,7 @@ export const netTcpHandshake = {
       synack: 'SYN-ACK  seq = y, ack = x + 1',
       synackSub: '「了解。こちらはyから」',
       ack: 'ACK  ack = y + 1',
-      ackSub: 'TLS 1.3ならClientHelloが同じパケットに相乗りする',
+      ackSub: 'ClientHelloは待たずにすぐ後に続く',
       states: { closed: 'CLOSED', listen: 'LISTEN', synSent: 'SYN_SENT', synRcvd: 'SYN_RECEIVED', est: 'ESTABLISHED' },
       rtt: ['1 RTT', 'データを送る', '前に必要'],
       caption:
@@ -351,46 +351,46 @@ export const netByteStream = {
 export const netTcpRetransmit = {
   labels: {
     en: {
-      aria: 'Four TCP segments are sent, the second is lost, the receiver repeats the same ACK three times and the sender retransmits the missing segment without waiting for a timeout',
+      aria: 'Five TCP segments are sent, the second is lost, the receiver repeats the same ACK three times and the sender retransmits the missing segment without waiting for a timeout',
       client: 'Sender',
       server: 'Receiver',
       seg: (n) => `seg ${n}`,
       lost: 'lost',
-      acks: ['ACK 1461', 'ACK 1461 (dup)', 'ACK 1461 (dup)', 'ACK 1461 (dup)'],
-      ackNote: '“still need 1461”',
+      acks: ['ACK 1460', 'ACK 1460 (dup)', 'ACK 1460 (dup)', 'ACK 1460 (dup)'],
+      ackNote: '“still need 1460”',
       resend: 'seg 2 again',
-      final: 'ACK 5841',
+      final: 'ACK 7300',
       finalNote: 'one ACK covers everything up to here',
       fast: ['3 dup ACKs', 'fast', 'retransmit'],
       caption:
-        'ACKs are cumulative: “1461” means “I have every byte before 1461”. Three identical ACKs tell the sender exactly which segment to resend, long before its retransmission timer would have fired.',
+        'ACKs are cumulative: “1460” means “I have every byte before 1460”. Three identical ACKs tell the sender exactly which segment to resend, long before its retransmission timer would have fired.',
     },
     ja: {
-      aria: 'TCPセグメントを4つ送り、2つ目が失われ、受信側が同じACKを3回繰り返し、送信側がタイムアウトを待たずに欠けたセグメントを再送する',
+      aria: 'TCPセグメントを5つ送り、2つ目が失われ、受信側が同じACKを3回繰り返し、送信側がタイムアウトを待たずに欠けたセグメントを再送する',
       client: '送信側',
       server: '受信側',
       seg: (n) => `seg ${n}`,
       lost: '消失',
-      acks: ['ACK 1461', 'ACK 1461（重複）', 'ACK 1461（重複）', 'ACK 1461（重複）'],
-      ackNote: '「1461バイト目がまだ」',
+      acks: ['ACK 1460', 'ACK 1460（重複）', 'ACK 1460（重複）', 'ACK 1460（重複）'],
+      ackNote: '「1460バイト目がまだ」',
       resend: 'seg 2 を再送',
-      final: 'ACK 5841',
+      final: 'ACK 7300',
       finalNote: 'ここまでの全部を1つのACKで確認',
       fast: ['重複ACK 3回', '高速', '再送'],
       caption:
-        'ACKは累積です。「1461」は「1461より前のバイトは全部持っている」という意味です。同じACKが3回届けば、送信側は再送タイマーが切れるずっと前に、どのセグメントを送り直せばいいか正確に分かります。',
+        'ACKは累積です。「1460」は「1460より前のバイトは全部持っている」という意味です。同じACKが3回届けば、送信側は再送タイマーが切れるずっと前に、どのセグメントを送り直せばいいか正確に分かります。',
     },
   },
   render(l) {
     const id = 'net-rtx';
     const mp = `${id}-p`;
     const ms = `${id}-s`;
-    const H = 356;
+    const H = 390;
     const parts = [actors(l.client, l.server, H)];
     const gap = 34;
     const segY = (i) => 70 + i * gap;
-    // Four segments leave back to back; each is named beside the sender's lifeline
-    for (let i = 0; i < 4; i++) {
+    // Five segments leave back to back; each is named beside the sender's lifeline
+    for (let i = 0; i < 5; i++) {
       const y0 = segY(i);
       parts.push(note('l', y0 + 4, l.seg(i + 1), 'd-primary-text'));
       if (i === 1) {
@@ -404,8 +404,8 @@ export const netTcpRetransmit = {
         parts.push(msg('l', y0, '', mp, { cls: 'primary' }));
       }
     }
-    // ACKs come back for segments 1, 3 and 4; the last two repeat the first
-    const ackFor = [0, 2, 3];
+    // ACKs come back for segments 1, 3, 4 and 5; the last three repeat the first
+    const ackFor = [0, 2, 3, 4];
     let lastAckLeaves = 0;
     ackFor.forEach((i, k) => {
       const y0 = segY(i) + SLOPE + 2;
@@ -637,7 +637,7 @@ export const netTlsHandshake = {
       shSub: 'key share · chosen cipher',
       enc: ['encrypted', 'from here ↓'],
       certs: '{ Certificate · CertificateVerify · Finished }',
-      certsSub: '+ EncryptedExtensions · chain, signature, handshake checksum',
+      certsSub: '+ EncryptedExtensions · chain, signature, handshake MAC',
       fin: '{ Finished }  +  GET /orders HTTP/2',
       finSub: 'the first request leaves in the same flight',
       keysL: ['same secret', 'on both sides'],
@@ -657,7 +657,7 @@ export const netTlsHandshake = {
       shSub: '鍵共有 · 選んだ暗号スイート',
       enc: ['ここから', '暗号化 ↓'],
       certs: '{ Certificate · CertificateVerify · Finished }',
-      certsSub: '+ EncryptedExtensions · チェーン、署名、チェックサム',
+      certsSub: '+ EncryptedExtensions · チェーン、署名、MAC',
       fin: '{ Finished }  +  GET /orders HTTP/2',
       finSub: '最初のリクエストが同じ往路に相乗りする',
       keysL: ['双方が同じ', '秘密を持つ'],
